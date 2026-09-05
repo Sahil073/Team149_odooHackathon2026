@@ -152,13 +152,32 @@ def resolve_flag(flag_id: str):
 
 
 # -----------------------------------------------------------------------------
-# 4. AI Deal Win Probability Predictor
+# 4. AI Deal Win Probability Predictor (Trained ML Model)
 # -----------------------------------------------------------------------------
+import json
+import math
+
+_ML_WEIGHTS = None
+
+def _get_ml_weights():
+    global _ML_WEIGHTS
+    if _ML_WEIGHTS is None:
+        weights_file = BASE_DIR / "deal_win_weights.json"
+        if weights_file.exists():
+            try:
+                with open(weights_file, "r", encoding="utf-8") as f:
+                    _ML_WEIGHTS = json.load(f)
+            except Exception as e:
+                print(f"[gateway] Warning: could not load deal_win_weights.json ({e})")
+    return _ML_WEIGHTS
+
+
 class WinPredictRequest(BaseModel):
     customerTier: Optional[str] = "Silver"  # Bronze, Silver, Gold
     totalRevenue: Optional[float] = None
     avgDiscountPct: Optional[float] = None
     itemCount: Optional[int] = 1
+    riskScore: Optional[float] = 0.15
     # Fallback/alternative field names
     amount: Optional[float] = None
     discount_pct: Optional[float] = None
@@ -170,38 +189,80 @@ class WinPredictRequest(BaseModel):
 
 @gateway.post("/api/ai/win-probability")
 def predict_win_probability(req: WinPredictRequest):
-    tier = req.customerTier or "Silver"
-    revenue = req.totalRevenue if req.totalRevenue is not None else (req.amount or 10000.0)
-    discount = req.avgDiscountPct if req.avgDiscountPct is not None else (req.discount_pct or 5.0)
+    tier_str = (req.customerTier or "Silver").strip().capitalize()
+    tier_num = 3.0 if tier_str == "Gold" else 2.0 if tier_str == "Silver" else 1.0
+    revenue = float(req.totalRevenue if req.totalRevenue is not None else (req.amount or 10000.0))
+    discount = float(req.avgDiscountPct if req.avgDiscountPct is not None else (req.discount_pct or 5.0))
+    items = float(req.itemCount if req.itemCount is not None else 1)
+    risk = float(req.riskScore if req.riskScore is not None else 0.15)
 
+    weights_data = _get_ml_weights()
+
+    if weights_data and "coefficients" in weights_data:
+        coefs = weights_data["coefficients"]
+        intercept = weights_data["intercept"]
+        means = weights_data["scaler_mean"]
+        scales = weights_data["scaler_scale"]
+
+        raw_features = [tier_num, revenue, discount, items, risk]
+        scaled_features = [(x - m) / (s if s != 0 else 1.0) for x, m, s in zip(raw_features, means, scales)]
+
+        z = intercept + sum(w * x for w, x in zip(coefs, scaled_features))
+        prob = 1.0 / (1.0 + math.exp(-max(min(z, 25.0), -25.0)))
+        prob = max(min(prob, 0.98), 0.05)
+
+        # Explainability: inspect which feature contributed most
+        contributions = [
+            ("tier", coefs[0] * scaled_features[0]),
+            ("revenue", coefs[1] * scaled_features[1]),
+            ("discount", coefs[2] * scaled_features[2]),
+            ("items", coefs[3] * scaled_features[3]),
+            ("risk", coefs[4] * scaled_features[4]),
+        ]
+
+        if prob >= 0.70:
+            status = "HIGH"
+            driver = f"Strong {tier_str} tier conversion affinity combined with competitive {discount:.1f}% discount."
+        elif prob >= 0.45:
+            status = "MODERATE"
+            driver = f"Moderate close propensity for ${revenue:,.0f} deal. Suggest adding line items to improve lock-in."
+        else:
+            status = "AT_RISK"
+            driver = f"High deal risk: high discount or deal size exceeds standard close benchmarks."
+
+        # Find discount sweet spot maximizing expected value
+        best_d = 5.0
+        best_ev = -1.0
+        for test_d in [0.0, 5.0, 8.0, 10.0, 12.0, 15.0, 18.0]:
+            test_raw = [tier_num, revenue, test_d, items, risk]
+            test_scaled = [(x - m) / (s if s != 0 else 1.0) for x, m, s in zip(test_raw, means, scales)]
+            test_z = intercept + sum(w * x for w, x in zip(coefs, test_scaled))
+            test_prob = 1.0 / (1.0 + math.exp(-max(min(test_z, 25.0), -25.0)))
+            ev = test_prob * revenue * (1.0 - test_d / 100.0)
+            if ev > best_ev:
+                best_ev = ev
+                best_d = test_d
+
+        return {
+            "winProbability": round(prob, 2),
+            "status": status,
+            "confidence": round(weights_data.get("metrics", {}).get("roc_auc", 0.89), 2),
+            "keyDriver": driver,
+            "recommendedDiscountPct": int(best_d),
+            "modelType": weights_data.get("model_type", "LogisticRegression"),
+            "modelVersion": weights_data.get("version", "1.0.0"),
+        }
+
+    # Fallback heuristic
     tier_weights = {"Bronze": 0.45, "Silver": 0.65, "Gold": 0.82}
-    base_prob = tier_weights.get(tier, 0.50)
-
-    # Discount influence
-    if discount <= 10:
-        discount_factor = 0.08 * (discount / 10.0)
-    elif discount <= 20:
-        discount_factor = 0.08 - 0.16 * ((discount - 10) / 10.0)
-    else:
-        discount_factor = -0.22
-
-    size_factor = 0.04 if 1000 <= revenue <= 50000 else -0.04
-
-    score = min(max(base_prob + discount_factor + size_factor, 0.05), 0.98)
-    status = "HIGH" if score >= 0.70 else "MODERATE" if score >= 0.45 else "AT_RISK"
-
-    if score >= 0.70:
-        driver = f"High likelihood to close for {tier} tier with healthy {discount:.1f}% discount."
-    elif score >= 0.45:
-        driver = f"Moderate closure rate. Consider contract duration or bundled services to protect margin."
-    else:
-        driver = f"Low win probability: discount breach and deal size suggest risk of client hesitation or margin loss."
-
+    base_prob = tier_weights.get(tier_str, 0.50)
+    score = min(max(base_prob + (0.05 if discount <= 10 else -0.1), 0.05), 0.98)
     return {
         "winProbability": round(score, 2),
-        "status": status,
-        "confidence": 0.89,
-        "keyDriver": driver,
+        "status": "HIGH" if score >= 0.70 else "MODERATE" if score >= 0.45 else "AT_RISK",
+        "confidence": 0.85,
+        "keyDriver": f"{tier_str} tier customer profile evaluated.",
+        "recommendedDiscountPct": 10,
     }
 
 
