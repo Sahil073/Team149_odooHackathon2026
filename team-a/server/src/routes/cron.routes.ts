@@ -84,4 +84,16 @@ router.post('/deal-health-scan', async (_req: Request, res: Response, next: Next
     }
 });
 
+// POST /api/cron/seed — reseed initial database data
+router.post('/seed', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { seed } = await import('../database/seeds/seed');
+        await seed();
+        res.json({ message: 'Database seeded successfully' });
+    } catch (err) {
+        next(err);
+    }
+});
+
 export default router;
+

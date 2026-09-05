@@ -40,12 +40,22 @@ if (isDevelopment) {
     });
 }
 
+export let isDatabaseConnected = false;
+
 export async function connectDatabase(): Promise<void> {
-    await prisma.$connect();
-    console.log('✅ Postgres connected via Prisma');
+    try {
+        await prisma.$connect();
+        isDatabaseConnected = true;
+        console.log('✅ Postgres connected via Prisma');
+    } catch (err: any) {
+        isDatabaseConnected = false;
+        console.warn('⚠️  Postgres not reachable at DATABASE_URL — starting in disconnected mode.');
+        console.warn('   (Database queries will fail until Postgres is running or a cloud DB URL is provided)');
+    }
 }
 
 export async function disconnectDatabase(): Promise<void> {
+    isDatabaseConnected = false;
     await prisma.$disconnect();
     console.log('🔌 Postgres disconnected');
 }

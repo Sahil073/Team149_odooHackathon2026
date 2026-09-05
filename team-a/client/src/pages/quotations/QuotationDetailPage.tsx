@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react';
 import { ArrowRight, Download, Edit3, Package, Send, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Notice } from '../../components/common/Notice';
+import { DealWinRateCard } from '../../components/ui/DealWinRateCard';
+import { predictWinProbability, type WinPredictionResponse } from '../../lib/api';
 import type { Quote } from '../../types';
 
 type QuotationDetailPageProps = {
@@ -27,6 +30,35 @@ export function QuotationDetailPage({
     0
   );
   const finalTotal = subtotal - totalDiscount;
+
+  const [aiWinData, setAiWinData] = useState<WinPredictionResponse | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function fetchAiWinScore() {
+      try {
+        setAiLoading(true);
+        const discountPct = subtotal > 0 ? Math.round((totalDiscount / subtotal) * 100) : 8;
+        const result = await predictWinProbability({
+          customerTier: 'Gold',
+          totalRevenue: quote.numericAmount || finalTotal || 10000,
+          avgDiscountPct: discountPct,
+          itemCount: products.length || 1,
+          riskScore: quote.health === 'At risk' ? 0.65 : 0.15,
+        });
+        if (active) setAiWinData(result);
+      } catch (err) {
+        console.error('Failed to fetch win prediction for detail page:', err);
+      } finally {
+        if (active) setAiLoading(false);
+      }
+    }
+    fetchAiWinScore();
+    return () => {
+      active = false;
+    };
+  }, [quote.id, quote.numericAmount, finalTotal, totalDiscount, subtotal, products.length, quote.health]);
 
   return (
     <div className="content-container quotation-detail-page">
@@ -83,6 +115,9 @@ export function QuotationDetailPage({
           <small>Tier: Gold Enterprise</small>
         </div>
       </div>
+
+      {/* AI Win-Rate ML Insights Panel */}
+      <DealWinRateCard data={aiWinData} loading={aiLoading} />
 
       {/* Quoted Products & Specifications Table Panel */}
       <section className="panel quote-products-panel">

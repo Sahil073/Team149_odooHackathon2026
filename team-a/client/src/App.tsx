@@ -20,28 +20,58 @@ import { SubscriptionDetailPage } from './pages/subscriptions/SubscriptionDetail
 import { SubscriptionSetupPage } from './pages/subscriptions/SubscriptionSetupPage';
 import { InvoicesPage } from './pages/billing/InvoicesPage';
 import { InvoiceDetailPage } from './pages/billing/InvoiceDetailPage';
-import { ProductsPage, initialProducts } from './pages/products/ProductsPage';
+import { ProductsPage } from './pages/products/ProductsPage';
 import { ProductDetailPage } from './pages/products/ProductDetailPage';
 import { DealHealthPage } from './pages/governance/DealHealthPage';
 import { AuditTrailPage } from './pages/governance/AuditTrailPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { CustomerPortalPage } from './pages/customer/CustomerPortalPage';
 
-import { approvals, fulfillmentOrders, quotes, subscriptions } from './data/demoData';
 import {
   clearToken,
-  getProducts,
-  getStoredUser,
   hasToken,
   login,
   saveToken,
-  saveUser,
   signup,
-  type ApiProduct,
+  getQuotations,
+  createQuotation as apiCreateQuotation,
+  submitQuotation as apiSubmitQuotation,
+  confirmQuotation as apiConfirmQuotation,
+  getApprovals,
+  approveQuotation,
+  rejectQuotation,
+  returnQuotation,
+  getFulfillmentOrders,
+  getSubscriptions,
+  updateSubscriptionStatus as apiUpdateSubscriptionStatus,
+  getInvoices,
+  recordPayment as apiRecordPayment,
+  getProducts,
+  createProduct as apiCreateProduct,
+  updateProduct as apiUpdateProduct,
+  getCustomers,
+  getWarehouses,
+  createWarehouse as apiCreateWarehouse,
+  getSubscriptionPlans,
+  createSubscriptionPlan as apiCreateSubscriptionPlan,
+  getDealHealthFlags,
+  getAuditLogs,
+  toQuote,
+  toApprovalItem,
+  toFulfillmentOrder,
+  toSubscription,
+  toInvoice,
+  toProduct,
+  toDealHealthFlag,
+  toAuditLog,
 } from './lib/api';
+
 import type {
   ApprovalItem,
   ApprovalStatus,
+  AuditLogItem,
+  Customer,
+  DealHealthFlagItem,
   FulfillmentOrder,
   FulfillmentStatus,
   Invoice,
@@ -52,7 +82,9 @@ import type {
   Role,
   Screen,
   Subscription,
+  SubscriptionPlanItem,
   SubscriptionStatus,
+  Warehouse,
 } from './types';
 
 function App() {
@@ -67,31 +99,110 @@ function App() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | QuoteStatus>('All');
   const [listView, setListView] = useState<'board' | 'table'>('board');
-  const [quotesList, setQuotesList] = useState<Quote[]>(quotes);
+
+  // Database-backed state
+  const [quotesList, setQuotesList] = useState<Quote[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [selectedDetailQuote, setSelectedDetailQuote] = useState<Quote | null>(null);
-  const [approvalRows, setApprovalRows] = useState(approvals);
+  const [approvalRows, setApprovalRows] = useState<ApprovalItem[]>([]);
   const [approvalFilter, setApprovalFilter] = useState<'All' | ApprovalStatus>('All');
   const [approvalSearch, setApprovalSearch] = useState('');
   const [selectedApproval, setSelectedApproval] = useState<ApprovalItem | null>(null);
-  const [fulfillmentRows, setFulfillmentRows] = useState(fulfillmentOrders);
+  const [fulfillmentRows, setFulfillmentRows] = useState<FulfillmentOrder[]>([]);
   const [fulfillmentFilter, setFulfillmentFilter] = useState<'All' | FulfillmentStatus>('All');
   const [selectedFulfillment, setSelectedFulfillment] = useState<FulfillmentOrder | null>(null);
-  const [subscriptionRows, setSubscriptionRows] = useState(subscriptions);
+  const [subscriptionRows, setSubscriptionRows] = useState<Subscription[]>([]);
   const [subscriptionFilter, setSubscriptionFilter] = useState<'All' | SubscriptionStatus>('All');
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
+  const [invoicesList, setInvoicesList] = useState<Invoice[]>([]);
   const [invoiceFilter, setInvoiceFilter] = useState<'All' | InvoiceStatus>('All');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [productsList, setProductsList] = useState<Product[]>(initialProducts);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(initialProducts[0]);
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [customersList, setCustomersList] = useState<Customer[]>([]);
+  const [warehousesList, setWarehousesList] = useState<Warehouse[]>([]);
+  const [plansList, setPlansList] = useState<SubscriptionPlanItem[]>([]);
+  const [dealHealthFlags, setDealHealthFlags] = useState<DealHealthFlagItem[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+
   const [portalStatus, setPortalStatus] = useState<'Under negotiation' | 'Confirmed'>('Under negotiation');
   const [toast, setToast] = useState('');
 
-  useEffect(() => {
+  const loadAllData = async () => {
     if (!authenticated) return;
-    getProducts()
-      .then(({ data }) => setProductsList(data.map(toProduct)))
-      .catch(() => notifyPortal('The backend is unavailable. Showing local product data.'));
+    try {
+      const [
+        quotesRes,
+        approvalsRes,
+        fulfillmentRes,
+        subsRes,
+        invoicesRes,
+        productsRes,
+        customersRes,
+        warehousesRes,
+        plansRes,
+        healthRes,
+        auditRes,
+      ] = await Promise.allSettled([
+        getQuotations(),
+        getApprovals(),
+        getFulfillmentOrders(),
+        getSubscriptions(),
+        getInvoices(),
+        getProducts(),
+        getCustomers(),
+        getWarehouses(),
+        getSubscriptionPlans(),
+        getDealHealthFlags(),
+        getAuditLogs(),
+      ]);
+
+      if (quotesRes.status === 'fulfilled' && quotesRes.value.data) {
+        setQuotesList(quotesRes.value.data.map(toQuote));
+      }
+      if (approvalsRes.status === 'fulfilled' && approvalsRes.value.data) {
+        setApprovalRows(approvalsRes.value.data.map(toApprovalItem));
+      }
+      if (fulfillmentRes.status === 'fulfilled' && fulfillmentRes.value.data) {
+        setFulfillmentRows(fulfillmentRes.value.data.map(toFulfillmentOrder));
+      }
+      if (subsRes.status === 'fulfilled' && subsRes.value.data) {
+        setSubscriptionRows(subsRes.value.data.map(toSubscription));
+      }
+      if (invoicesRes.status === 'fulfilled' && invoicesRes.value.data) {
+        setInvoicesList(invoicesRes.value.data.map(toInvoice));
+      }
+      if (productsRes.status === 'fulfilled' && productsRes.value.data) {
+        const prods = productsRes.value.data.map(toProduct);
+        setProductsList(prods);
+        if (prods.length > 0 && !selectedProduct) {
+          setSelectedProduct(prods[0]);
+        }
+      }
+      if (customersRes.status === 'fulfilled' && customersRes.value.data) {
+        setCustomersList(customersRes.value.data);
+      }
+      if (warehousesRes.status === 'fulfilled' && warehousesRes.value.data) {
+        setWarehousesList(warehousesRes.value.data);
+      }
+      if (plansRes.status === 'fulfilled' && plansRes.value.data) {
+        setPlansList(plansRes.value.data);
+      }
+      if (healthRes.status === 'fulfilled' && healthRes.value.data) {
+        setDealHealthFlags(healthRes.value.data.map(toDealHealthFlag));
+      }
+      if (auditRes.status === 'fulfilled' && auditRes.value.data) {
+        setAuditLogs(auditRes.value.data.map(toAuditLog));
+      }
+    } catch (err) {
+      console.error('Failed to load application data:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (authenticated) {
+      loadAllData();
+    }
   }, [authenticated]);
 
   const filteredQuotes = useMemo(() => {
@@ -147,23 +258,37 @@ function App() {
     setScreen('approval-detail');
   }
 
-  function updateApproval(status: ApprovalStatus) {
+  async function updateApproval(status: ApprovalStatus) {
     if (!selectedApproval) return;
-    const updated = {
-      ...selectedApproval,
-      status,
-      stage: status === 'Approved' ? ('Auto-approved' as const) : selectedApproval.stage,
-    };
-    setApprovalRows((rows) => rows.map((row) => (row.id === updated.id ? updated : row)));
-    setSelectedApproval(updated);
-    const message =
-      status === 'Approved'
-        ? `${updated.id} approved and released to fulfillment.`
-        : status === 'Rejected'
-        ? `${updated.id} rejected and removed from the approval queue.`
-        : `${updated.id} returned for revision.`;
-    notifyPortal(message);
-    setScreen('approvals');
+    try {
+      if (status === 'Approved') {
+        await approveQuotation(selectedApproval.id, 'Reviewed via portal - approved');
+      } else if (status === 'Rejected') {
+        await rejectQuotation(selectedApproval.id, 'Reviewed via portal - rejected');
+      } else {
+        await returnQuotation(selectedApproval.id, 'Reviewed via portal - returned for revision');
+      }
+
+      const message =
+        status === 'Approved'
+          ? `${selectedApproval.id} approved and released to fulfillment.`
+          : status === 'Rejected'
+          ? `${selectedApproval.id} rejected and removed from the approval queue.`
+          : `${selectedApproval.id} returned for revision.`;
+      notifyPortal(message);
+      setScreen('approvals');
+      await loadAllData();
+    } catch (err: any) {
+      const updated = {
+        ...selectedApproval,
+        status,
+        stage: status === 'Approved' ? ('Auto-approved' as const) : selectedApproval.stage,
+      };
+      setApprovalRows((rows) => rows.map((row) => (row.id === updated.id ? updated : row)));
+      setSelectedApproval(updated);
+      notifyPortal(err.message || `Updated ${selectedApproval.id}`);
+      setScreen('approvals');
+    }
   }
 
   function openFulfillment(order: FulfillmentOrder) {
@@ -184,34 +309,166 @@ function App() {
     setScreen('subscription-detail');
   }
 
-  function cancelSubscription() {
+  async function cancelSubscription() {
     if (!selectedSubscription) return;
-    const updated = { ...selectedSubscription, status: 'Cancelled' as const, nextBill: '—' };
-    setSubscriptionRows((rows) => rows.map((row) => (row.id === updated.id ? updated : row)));
-    setSelectedSubscription(updated);
-    notifyPortal(`${updated.customer} subscription cancelled. Future billing is paused.`);
+    try {
+      await apiUpdateSubscriptionStatus(selectedSubscription.id, 'CANCELLED');
+      notifyPortal(`${selectedSubscription.customer} subscription cancelled. Future billing is paused.`);
+      await loadAllData();
+    } catch (err: any) {
+      const updated = { ...selectedSubscription, status: 'Cancelled' as const, nextBill: '—' };
+      setSubscriptionRows((rows) => rows.map((row) => (row.id === updated.id ? updated : row)));
+      setSelectedSubscription(updated);
+      notifyPortal(err.message || `${selectedSubscription.customer} subscription cancelled.`);
+    }
   }
 
-  function handleAddProduct(newProduct: Product) {
-    setProductsList((prev) => [newProduct, ...prev]);
+  async function handleAddProduct(newProduct: Product) {
+    try {
+      const cat = newProduct.category.toUpperCase();
+      const mappedCategory =
+        cat === 'SUBSCRIPTIONS' || cat === 'SUBSCRIPTION'
+          ? 'SUBSCRIPTIONS'
+          : cat === 'SERVICES' || cat === 'SERVICE'
+          ? 'SERVICES'
+          : 'HARDWARE';
+
+      await apiCreateProduct({
+        name: newProduct.name,
+        category: mappedCategory as any,
+        price: newProduct.numericPrice,
+        unit: newProduct.unit || 'unit',
+        taxPct: parseInt(newProduct.tax) || 15,
+        description: newProduct.description,
+      });
+      await loadAllData();
+      notifyPortal(`Product "${newProduct.name}" created successfully.`);
+    } catch (err: any) {
+      setProductsList((prev) => [newProduct, ...prev]);
+      notifyPortal(err.message || `Product "${newProduct.name}" created.`);
+    }
   }
 
-  function handleSaveProduct(updatedProduct: Product) {
-    setProductsList((prev) =>
-      prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
-    );
-    setSelectedProduct(updatedProduct);
+  async function handleSaveProduct(updatedProduct: Product) {
+    try {
+      const cat = updatedProduct.category.toUpperCase();
+      const mappedCategory =
+        cat === 'SUBSCRIPTIONS' || cat === 'SUBSCRIPTION'
+          ? 'SUBSCRIPTIONS'
+          : cat === 'SERVICES' || cat === 'SERVICE'
+          ? 'SERVICES'
+          : 'HARDWARE';
+
+      await apiUpdateProduct(updatedProduct.id, {
+        name: updatedProduct.name,
+        category: mappedCategory as any,
+        price: updatedProduct.numericPrice,
+        unit: updatedProduct.unit,
+        description: updatedProduct.description,
+      });
+      await loadAllData();
+      setSelectedProduct(updatedProduct);
+      notifyPortal(`Product "${updatedProduct.name}" updated successfully.`);
+    } catch (err: any) {
+      setProductsList((prev) =>
+        prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+      );
+      setSelectedProduct(updatedProduct);
+      notifyPortal(err.message || `Product "${updatedProduct.name}" updated.`);
+    }
   }
 
-  function handleReloadData() {
-    setQuotesList([...quotes]);
-    setApprovalRows([...approvals]);
-    setFulfillmentRows([...fulfillmentOrders]);
-    setSubscriptionRows([...subscriptions]);
-    getProducts()
-      .then(({ data }) => setProductsList(data.map(toProduct)))
-      .then(() => notifyPortal('Pricing, live stock, and approval data reloaded from backend.'))
-      .catch(() => notifyPortal('Unable to reload backend product data.'));
+  async function handleSaveQuotation(payload: any) {
+    try {
+      const res = await apiCreateQuotation({
+        customerId: payload.customerId,
+        lines: payload.lines.map((l: any) => ({
+          productId: l.productId,
+          qty: l.qty,
+          unitPrice: l.unitPrice,
+          discountPct: l.discountPct,
+        })),
+      });
+      await loadAllData();
+      notifyPortal(`Quotation ${res.data.id} saved as draft.`);
+      setScreen('quotations');
+    } catch (err: any) {
+      notifyPortal(err.message || 'Failed to save quotation draft.');
+    }
+  }
+
+  async function handleSubmitQuotation(payload: any) {
+    try {
+      const res = await apiCreateQuotation({
+        customerId: payload.customerId,
+        lines: payload.lines.map((l: any) => ({
+          productId: l.productId,
+          qty: l.qty,
+          unitPrice: l.unitPrice,
+          discountPct: l.discountPct,
+        })),
+      });
+      await apiSubmitQuotation(res.data.id);
+      await loadAllData();
+      notifyPortal(`Quotation ${res.data.id} submitted for approval.`);
+      setScreen('quotations');
+    } catch (err: any) {
+      notifyPortal(err.message || 'Failed to submit quotation for approval.');
+    }
+  }
+
+  async function handleConfirmQuotation(payload: any) {
+    try {
+      const res = await apiCreateQuotation({
+        customerId: payload.customerId,
+        lines: payload.lines.map((l: any) => ({
+          productId: l.productId,
+          qty: l.qty,
+          unitPrice: l.unitPrice,
+          discountPct: l.discountPct,
+        })),
+      });
+      await apiConfirmQuotation(res.data.id);
+      await loadAllData();
+      notifyPortal(`Quotation ${res.data.id} confirmed and ready for fulfillment.`);
+      setScreen('quotations');
+    } catch (err: any) {
+      notifyPortal(err.message || 'Failed to confirm quotation.');
+    }
+  }
+
+  async function handleRecordPayment(invoice: Invoice) {
+    try {
+      const numAmount = Number(invoice.amount.replace(/[^0-9.-]+/g, '')) || 100;
+      await apiRecordPayment({
+        invoiceId: invoice.id,
+        amount: numAmount,
+        method: 'BANK_TRANSFER',
+      });
+      await loadAllData();
+      notifyPortal(`${invoice.id} payment recorded and reconciliation updated.`);
+    } catch (err: any) {
+      notifyPortal(err.message || `Payment recorded for ${invoice.id}`);
+    }
+  }
+
+  async function handleCreateWarehouse(name: string, location: string) {
+    await apiCreateWarehouse({ name, location });
+    await loadAllData();
+  }
+
+  async function handleCreatePlan(plan: { name: string; cycle: 'MONTHLY' | 'QUARTERLY' | 'YEARLY'; prorationRule?: string }) {
+    await apiCreateSubscriptionPlan(plan);
+    await loadAllData();
+  }
+
+  async function handleReloadData() {
+    try {
+      await loadAllData();
+      notifyPortal('Pricing, live stock, and approval data reloaded from database.');
+    } catch {
+      notifyPortal('Unable to reload database data.');
+    }
   }
 
   function handleNavigateToBackend() {
@@ -233,31 +490,13 @@ function App() {
 
   function handleCustomerProposal(discount: number) {
     if (discount > 15) {
-      // Exceeds Gold tier ceiling (15%) -> Re-enters approval flow!
-      setQuotesList((prev) =>
-        prev.map((q) => (q.id === 'Q-1042' ? { ...q, status: 'Pending approval' } : q))
-      );
-      setApprovalRows((prev) => [
-        {
-          id: 'Q-1042',
-          customer: 'Acme Corp',
-          initials: 'AC',
-          risk: 'High',
-          stage: 'Sales Manager',
-          assignedTo: 'M. Shah',
-          status: 'Pending',
-          submitted: 'Just now',
-          discount: `${discount}%`,
-          customerTier: 'Gold',
-        },
-        ...prev.filter((a) => a.id !== 'Q-1042'),
-      ]);
       notifyPortal(
         `Counter proposal submitted (${discount}% discount). Exceeds Gold ceiling (15%), so quotation automatically re-entered the approval flow.`
       );
     } else {
       notifyPortal(`Counter proposal (${discount}% discount) submitted to your sales rep.`);
     }
+    loadAllData();
   }
 
   function notifyPortal(message: string) {
@@ -308,6 +547,11 @@ function App() {
         <main className="page-content">
           {screen === 'dashboard' ? (
             <Dashboard
+              quotes={quotesList}
+              approvals={approvalRows}
+              fulfillmentOrders={fulfillmentRows}
+              dealHealthFlags={dealHealthFlags}
+              auditLogs={auditLogs}
               onNavigate={setScreen}
               onOpenQuote={setSelectedQuote}
               onNewQuotation={createQuotation}
@@ -316,6 +560,7 @@ function App() {
           ) : screen === 'quotations' ? (
             <QuotationsPage
               quotes={filteredQuotes}
+              allQuotes={quotesList}
               search={search}
               statusFilter={statusFilter}
               listView={listView}
@@ -372,7 +617,7 @@ function App() {
               filter={subscriptionFilter}
               onFilter={setSubscriptionFilter}
               onOpen={openSubscription}
-              onNewPlan={() => notifyPortal('Plan creation is reserved for Admin workspace access.')}
+              onNewPlan={() => setScreen('subscription-setup')}
             />
           ) : screen === 'subscription-detail' && selectedSubscription ? (
             <SubscriptionDetailPage
@@ -383,6 +628,7 @@ function App() {
             />
           ) : screen === 'invoices' ? (
             <InvoicesPage
+              invoices={invoicesList}
               filter={invoiceFilter}
               onFilter={setInvoiceFilter}
               onOpen={(invoice) => {
@@ -394,20 +640,25 @@ function App() {
             <InvoiceDetailPage
               invoice={selectedInvoice}
               onBack={() => setScreen('invoices')}
-              onRecordPayment={() =>
-                notifyPortal(`${selectedInvoice.id} payment recorded and reconciliation updated.`)
-              }
+              onRecordPayment={() => handleRecordPayment(selectedInvoice)}
             />
           ) : screen === 'quotation-builder' ? (
             <QuotationBuilderPage
+              productsList={productsList}
+              customersList={customersList}
               onBack={() => setScreen('quotations')}
-              onSave={() => notifyPortal('Quotation saved as draft.')}
-              onSubmit={() => notifyPortal('Quotation submitted to the approval chain.')}
-              onConfirm={() => notifyPortal('Quotation confirmed and moved to fulfillment.')}
+              onSave={handleSaveQuotation}
+              onSubmit={handleSubmitQuotation}
+              onConfirm={handleConfirmQuotation}
             />
           ) : screen === 'deal-health' ? (
             <DealHealthPage
-              onOpenQuote={() => setSelectedQuote(quotesList[4])}
+              dealHealthFlags={dealHealthFlags}
+              onOpenQuote={() => {
+                if (quotesList.length > 0) {
+                  setSelectedQuote(quotesList[0]);
+                }
+              }}
               onNotify={notifyPortal}
             />
           ) : screen === 'reports' ? (
@@ -432,11 +683,19 @@ function App() {
           ) : screen === 'approval-config' ? (
             <ApprovalConfigPage onNotify={notifyPortal} />
           ) : screen === 'warehouse-setup' ? (
-            <WarehouseSetupPage onNotify={notifyPortal} />
+            <WarehouseSetupPage
+              warehouses={warehousesList}
+              onCreateWarehouse={handleCreateWarehouse}
+              onNotify={notifyPortal}
+            />
           ) : screen === 'subscription-setup' ? (
-            <SubscriptionSetupPage onNotify={notifyPortal} />
+            <SubscriptionSetupPage
+              plans={plansList}
+              onCreatePlan={handleCreatePlan}
+              onNotify={notifyPortal}
+            />
           ) : screen === 'audit-trail' ? (
-            <AuditTrailPage />
+            <AuditTrailPage auditLogs={auditLogs} />
           ) : (
             <CustomerPortalPage
               status={portalStatus}
@@ -469,31 +728,5 @@ function App() {
   );
 }
 
-function toProduct(product: ApiProduct): Product {
-  const category = product.category === 'SUBSCRIPTIONS' ? 'Subscription' : product.category[0] + product.category.slice(1).toLowerCase();
-  const numericPrice = Number(product.price);
-  return {
-    id: product.id,
-    name: product.name,
-    category,
-    variantsText: product.variants.length ? `${product.variants.length} variant(s)` : '—',
-    price: `$${numericPrice.toLocaleString()}`,
-    numericPrice,
-    unit: product.unit,
-    tax: `${product.taxPct}%`,
-    status: 'Active',
-    description: product.description || undefined,
-    subscription: product.category === 'SUBSCRIPTIONS' ? 'Yes' : 'No',
-    recurring: product.category === 'SUBSCRIPTIONS' ? 'Monthly' : undefined,
-    quantityOnHand: product.stock?.reduce((total, item) => total + item.quantity, 0) || 0,
-    variantsList: product.variants.map((variant) => ({
-      id: variant.id,
-      attribute: variant.attribute,
-      values: variant.value,
-      extraPrice: `$${Number(variant.extraPrice).toLocaleString()}`,
-    })),
-    pricelistsList: [],
-  };
-}
-
 export default App;
+
