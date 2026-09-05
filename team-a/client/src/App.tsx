@@ -28,7 +28,17 @@ import { ReportsPage } from './pages/reports/ReportsPage';
 import { CustomerPortalPage } from './pages/customer/CustomerPortalPage';
 
 import { approvals, fulfillmentOrders, quotes, subscriptions } from './data/demoData';
-import { clearToken, getProducts, hasToken, login, saveToken, signup, type ApiProduct } from './lib/api';
+import {
+  clearToken,
+  getProducts,
+  getStoredUser,
+  hasToken,
+  login,
+  saveToken,
+  saveUser,
+  signup,
+  type ApiProduct,
+} from './lib/api';
 import type {
   ApprovalItem,
   ApprovalStatus,
@@ -47,7 +57,9 @@ import type {
 
 function App() {
   const [authenticated, setAuthenticated] = useState(hasToken);
-  const [role, setRole] = useState<Role>('sales-rep');
+  const storedUser = getStoredUser();
+  const [userName, setUserName] = useState(storedUser?.name || 'User');
+  const [role, setRole] = useState<Role>(storedUser ? fromApiRole(storedUser.role) : 'sales-rep');
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [screen, setScreen] = useState<Screen>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -110,6 +122,9 @@ function App() {
             toApiRole(role),
           );
       saveToken(response.token);
+      saveUser(response.user);
+      setUserName(response.user.name);
+      setRole(fromApiRole(response.user.role));
       setAuthenticated(true);
       setAuthMessage('');
       setScreen('dashboard');
@@ -277,6 +292,7 @@ function App() {
         onClose={() => setSidebarOpen(false)}
         onNavigate={(nextScreen) => setScreen(nextScreen)}
         role={role}
+        userName={userName}
       />
       <div className="app-main">
         <Topbar
@@ -287,6 +303,7 @@ function App() {
           onNavigateToBackend={handleNavigateToBackend}
           onLogout={handleLogout}
           role={role}
+          userName={userName}
         />
         <main className="page-content">
           {screen === 'dashboard' ? (
@@ -294,6 +311,7 @@ function App() {
               onNavigate={setScreen}
               onOpenQuote={setSelectedQuote}
               onNewQuotation={createQuotation}
+              userName={userName}
             />
           ) : screen === 'quotations' ? (
             <QuotationsPage

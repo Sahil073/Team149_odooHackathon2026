@@ -1,5 +1,6 @@
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000/api').replace(/\/$/, '');
 const TOKEN_KEY = 'dealflow.accessToken';
+const USER_KEY = 'dealflow.user';
 
 type ApiErrorBody = { message?: string; error?: string };
 
@@ -53,8 +54,23 @@ export function saveToken(token: string) {
   window.localStorage.setItem(TOKEN_KEY, token);
 }
 
+export function saveUser(user: AuthResponse['user']) {
+  window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function getStoredUser(): AuthResponse['user'] | null {
+  const value = window.localStorage.getItem(USER_KEY);
+  if (!value) return null;
+  try {
+    return JSON.parse(value) as AuthResponse['user'];
+  } catch {
+    return null;
+  }
+}
+
 export function clearToken() {
   window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(USER_KEY);
 }
 
 export function hasToken() {

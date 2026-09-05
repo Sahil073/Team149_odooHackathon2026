@@ -19,16 +19,17 @@ type DashboardProps = {
   onNavigate: (screen: Screen) => void;
   onOpenQuote: (quote: Quote) => void;
   onNewQuotation: () => void;
+  userName: string;
 };
 
-export function Dashboard({ onNavigate, onOpenQuote, onNewQuotation }: DashboardProps) {
+export function Dashboard({ onNavigate, onOpenQuote, onNewQuotation, userName }: DashboardProps) {
   return (
     <div className="content-container">
       <div className="page-heading page-heading-dashboard">
         <div>
           <span className="eyebrow">SATURDAY, SEPTEMBER 05, 2026</span>
           <h1>
-            Good morning, Pawan<span className="heading-period">.</span>
+            Good morning, {userName}<span className="heading-period">.</span>
           </h1>
           <p>Here&apos;s what&apos;s happening across your sales workspace.</p>
         </div>

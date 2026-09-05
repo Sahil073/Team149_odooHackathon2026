@@ -30,6 +30,7 @@ type SidebarProps = {
   onClose: () => void;
   onNavigate: (screen: Screen) => void;
   role: Role;
+  userName: string;
 };
 
 import type { Role } from '../../types';
@@ -62,7 +63,7 @@ const roleLabels: Record<Role, string> = {
   admin: 'Admin workspace',
 };
 
-export function Sidebar({ screen, open, onClose, onNavigate, role }: SidebarProps) {
+export function Sidebar({ screen, open, onClose, onNavigate, role, userName }: SidebarProps) {
   const visibleNavItems = navItems.filter((item) => item.roles.includes(role));
   const visibleUpcomingItems = upcomingItems.filter((item) => item.roles.includes(role));
   return (
@@ -77,9 +78,9 @@ export function Sidebar({ screen, open, onClose, onNavigate, role }: SidebarProp
         </div>
 
         <div className="workspace-switcher">
-          <span className="avatar avatar-indigo">AK</span>
+          <span className="avatar avatar-indigo">{getInitials(userName)}</span>
           <span className="workspace-info">
-            <strong>{role === 'customer' ? 'Acme Corporation' : 'Pawan Kumar'}</strong>
+            <strong>{role === 'customer' ? 'Acme Corporation' : userName}</strong>
             <small>{roleLabels[role]}</small>
           </span>
           <ChevronDown size={15} className="muted-icon" />
@@ -131,9 +132,9 @@ export function Sidebar({ screen, open, onClose, onNavigate, role }: SidebarProp
             <span>Workspace settings</span>
           </button>
           <div className="sidebar-footer">
-            <span className="avatar avatar-neutral">AK</span>
+            <span className="avatar avatar-neutral">{getInitials(userName)}</span>
             <div>
-               <strong>{role === 'customer' ? 'Acme Corporation' : 'Pawan Kumar'}</strong>
+               <strong>{role === 'customer' ? 'Acme Corporation' : userName}</strong>
                <small>{roleLabels[role]}</small>
             </div>
             <PanelLeftClose size={16} className="muted-icon" />
@@ -142,4 +143,14 @@ export function Sidebar({ screen, open, onClose, onNavigate, role }: SidebarProp
       </aside>
     </>
   );
+}
+
+function getInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'U';
 }
