@@ -61,7 +61,7 @@ router.post('/deal-health-scan', async (_req: Request, res: Response, next: Next
             });
 
             if (!existingAnomaly) {
-                const highestDiscount = Math.max(...quote.lines.map((l) => l.discountPct));
+                const highestDiscount = Math.max(...quote.lines.map((l: any) => l.discountPct));
                 await prisma.dealHealthFlag.create({
                     data: {
                         quotationId: quote.id,

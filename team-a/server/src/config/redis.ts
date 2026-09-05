@@ -3,18 +3,25 @@ import { env } from './env';
 
 function createClient(name: string): RedisClient {
     const client = new Redis(env.REDIS_URL, {
-        // Don't auto-connect on construction — connectRedis() below controls exactly
-        // when connections open, so server.ts can await them before accepting traffic.
         lazyConnect: true,
+        enableOfflineQueue: false,
         retryStrategy(times: number) {
-            return Math.min(times * 200, 5000);
+            if (times > 1) {
+                return null; // Don't spam retries if Redis isn't running locally
+            }
+            return 500;
         },
-        maxRetriesPerRequest: 3,
+        maxRetriesPerRequest: 1,
     });
 
     client.on('connect', () => console.log(`✅ Redis (${name}) connected`));
-    client.on('error', (err: Error) => console.error(`❌ Redis (${name}) error:`, err.message));
-    client.on('close', () => console.warn(`🔌 Redis (${name}) connection closed`));
+    client.on('error', (err: Error) => {
+        // Only log once on initial attempt, don't spam
+        if (client.status === 'connecting' || client.status === 'connect') {
+            console.error(`❌ Redis (${name}) error:`, err.message);
+        }
+    });
+    client.on('close', () => { /* quiet on close */ });
 
     return client;
 }
@@ -35,9 +42,21 @@ export const redisPublisher = createClient('publisher');
 export const redisSubscriber = createClient('subscriber');
 
 export async function connectRedis(): Promise<void> {
-    await Promise.all([redis.connect(), redisPublisher.connect(), redisSubscriber.connect()]);
+    try {
+        await Promise.all([redis.connect(), redisPublisher.connect(), redisSubscriber.connect()]);
+    } catch (err: any) {
+        console.warn(`⚠️ Redis connection failed: ${err.message}. Continuing with in-memory event bus.`);
+    }
 }
 
 export async function disconnectRedis(): Promise<void> {
-    await Promise.all([redis.quit(), redisPublisher.quit(), redisSubscriber.quit()]);
+    try {
+        await Promise.all([
+            redis.status === 'ready' ? redis.quit() : Promise.resolve(),
+            redisPublisher.status === 'ready' ? redisPublisher.quit() : Promise.resolve(),
+            redisSubscriber.status === 'ready' ? redisSubscriber.quit() : Promise.resolve(),
+        ]);
+    } catch {
+        // ignore on shutdown
+    }
 }

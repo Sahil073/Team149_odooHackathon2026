@@ -65,7 +65,7 @@ router.get(
 
             // ICD §5 Fallback: Calculate blended risk engine math internally (fail-safe)
             const riskAssessment = calculateBlendedRisk(
-                quotation.lines.map((l) => ({
+                quotation.lines.map((l: any) => ({
                     lineId: l.id,
                     qty: l.qty,
                     unitPrice: Number(l.unitPrice),

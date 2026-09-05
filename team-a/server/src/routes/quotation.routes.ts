@@ -115,7 +115,7 @@ router.get('/:id', authenticateStaff, async (req: Request, res: Response, next: 
         }
 
         const totals = calculateQuotationTotals(
-            quotation.lines.map((l) => ({
+            quotation.lines.map((l: any) => ({
                 lineId: l.id,
                 qty: l.qty,
                 unitPrice: Number(l.unitPrice),
@@ -160,7 +160,7 @@ router.post(
             // If initial lines provided, add them and emit QuotationUpdated
             if (lines && lines.length > 0) {
                 const categoryLimits = await prisma.categoryDiscountLimit.findMany();
-                const limitMap = new Map(categoryLimits.map((c) => [c.category, c.maxDiscountPct]));
+                const limitMap = new Map(categoryLimits.map((c: any) => [c.category, c.maxDiscountPct]));
 
                 const createdLines = [];
                 for (const line of lines) {
@@ -246,7 +246,7 @@ router.patch(
             await prisma.quotationLine.deleteMany({ where: { quotationId } });
 
             const categoryLimits = await prisma.categoryDiscountLimit.findMany();
-            const limitMap = new Map(categoryLimits.map((c) => [c.category, c.maxDiscountPct]));
+            const limitMap = new Map(categoryLimits.map((c: any) => [c.category, c.maxDiscountPct]));
 
             const newLines = [];
             for (const line of lines) {
@@ -279,7 +279,7 @@ router.patch(
                 customerTier:
                     quotation.customer.tier === 'BRONZE' ? 'Bronze' : quotation.customer.tier === 'SILVER' ? 'Silver' : 'Gold',
                 salesRepId: quotation.salesRepId,
-                lines: newLines.map((l) => ({
+                lines: newLines.map((l: any) => ({
                     lineId: l.id,
                     productId: l.productId,
                     category: toEventCategory(l.product.category),
@@ -299,7 +299,7 @@ router.patch(
             });
 
             const totals = calculateQuotationTotals(
-                (updatedQuotation?.lines ?? []).map((l) => ({
+                (updatedQuotation?.lines ?? []).map((l: any) => ({
                     lineId: l.id,
                     qty: l.qty,
                     unitPrice: Number(l.unitPrice),

@@ -47,7 +47,7 @@ router.get(
             }
 
             // Internal fallback: Look up configured UpsellRules for products in this quotation
-            const currentProductIds = quotation.lines.map((l) => l.productId);
+            const currentProductIds = quotation.lines.map((l: any) => l.productId);
 
             const matchingRules = await prisma.upsellRule.findMany({
                 where: {
@@ -62,13 +62,13 @@ router.get(
                 take: 5,
             });
 
-            const currentCalculationLines = quotation.lines.map((l) => ({
+            const currentCalculationLines = quotation.lines.map((l: any) => ({
                 qty: l.qty,
                 unitPrice: Number(l.unitPrice),
                 discountPct: l.discountPct,
             }));
 
-            const suggestions = matchingRules.map((rule, idx) => {
+            const suggestions = matchingRules.map((rule: any, idx: number) => {
                 const deltaResult = calculateMarginDelta(currentCalculationLines, {
                     qty: 1,
                     unitPrice: Number(rule.suggestedProduct.price),

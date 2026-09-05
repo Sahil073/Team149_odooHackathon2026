@@ -99,10 +99,10 @@ router.post(
 
             // 2. Apply requested changes to the quotation lines
             const categoryLimits = await prisma.categoryDiscountLimit.findMany();
-            const limitMap = new Map(categoryLimits.map((c) => [c.category, c.maxDiscountPct]));
+            const limitMap = new Map(categoryLimits.map((c: any) => [c.category, c.maxDiscountPct]));
 
             for (const change of requestedChanges) {
-                const line = quotation.lines.find((l) => l.id === change.lineId);
+                const line = quotation.lines.find((l: any) => l.id === change.lineId);
                 if (!line) continue;
 
                 const catLimit = limitMap.get(line.product.category) ?? 10;
@@ -136,7 +136,7 @@ router.post(
                 customerTier:
                     quotation.customer.tier === 'BRONZE' ? 'Bronze' : quotation.customer.tier === 'SILVER' ? 'Silver' : 'Gold',
                 salesRepId: quotation.salesRepId,
-                lines: refreshedLines.map((l) => ({
+                lines: refreshedLines.map((l: any) => ({
                     lineId: l.id,
                     productId: l.productId,
                     category: toEventCategory(l.product.category),
@@ -178,7 +178,7 @@ router.post(
             }
 
             // Check if any line has unapproved breach
-            const hasBreach = quotation.lines.some((l) => l.status === QuotationLineStatus.FLAGGED);
+            const hasBreach = quotation.lines.some((l: any) => l.status === QuotationLineStatus.FLAGGED);
 
             if (hasBreach) {
                 // If final terms exceed thresholds, automatically re-enter approval flow

@@ -7,10 +7,10 @@
         "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
         "build": "tsc",
         "start": "node dist/server.js",
-        "seed": "ts-node src/database/seeds/seed.ts"
+        "seed": "ts-node src/database/seeds/seed.ts",
+        "db:start": "powershell -ExecutionPolicy Bypass -File ./start-postgres.ps1"
     },
     "dependencies": {
-        "@prisma/client": "^5.22.0",
         "cors": "^2.8.5",
         "dotenv": "^16.4.7",
         "express": "^4.21.2",
@@ -22,6 +22,7 @@
         "zod": "^3.24.1"
     },
     "devDependencies": {
+        "@prisma/client": "^5.22.0",
         "@types/cors": "^2.8.17",
         "@types/express": "^4.17.21",
         "@types/jsonwebtoken": "^9.0.7",
