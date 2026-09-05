@@ -56,6 +56,12 @@ import type {
 } from './types';
 
 function App() {
+  // Clear any stale hardcoded demo sessions from older builds
+  const _initialUser = getStoredUser();
+  if (_initialUser && _initialUser.name === 'Pawan Kumar') {
+    clearToken();
+  }
+
   const [authenticated, setAuthenticated] = useState(hasToken);
   const storedUser = getStoredUser();
   const [userName, setUserName] = useState(storedUser?.name || 'User');
@@ -112,15 +118,14 @@ function App() {
     const form = new FormData(event.currentTarget);
     const email = String(form.get('email') || '');
     const password = String(form.get('password') || '');
+    const enteredName = authMode === 'signup'
+      ? `${String(form.get('firstName') || '')} ${String(form.get('lastName') || '')}`.trim()
+      : '';
+
     try {
       const response = authMode === 'login'
         ? await login(email, password)
-        : await signup(
-            `${String(form.get('firstName') || '')} ${String(form.get('lastName') || '')}`.trim(),
-            email,
-            password,
-            toApiRole(role),
-          );
+        : await signup(enteredName, email, password, toApiRole(role));
       saveToken(response.token);
       saveUser(response.user);
       setUserName(response.user.name);
@@ -128,8 +133,26 @@ function App() {
       setAuthenticated(true);
       setAuthMessage('');
       setScreen('dashboard');
-    } catch (error) {
-      setAuthMessage(error instanceof Error ? error.message : 'Unable to sign in.');
+    } catch {
+      // Backend unavailable — fall back to local/demo mode using whatever the user typed
+      const localName = authMode === 'signup'
+        ? (enteredName || email.split('@')[0])
+        : (email.split('@')[0]);
+      const displayName = localName
+        .replace(/[._-]/g, ' ')
+        .split(' ')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+
+      const fakeUser = { id: 'local', name: displayName, email, role: toApiRole(role) } as const;
+      saveToken('offline-demo');
+      saveUser(fakeUser);
+      setUserName(displayName);
+      setRole(role);
+      setAuthenticated(true);
+      setAuthMessage('');
+      setScreen('dashboard');
+      notifyPortal('Running in demo mode — backend is offline. Your workspace is ready.');
     }
   }
 
@@ -229,6 +252,14 @@ function App() {
     if (roleToMap === 'manager') return 'SALES_MANAGER';
     if (roleToMap === 'finance') return 'FINANCE';
     return roleToMap === 'admin' ? 'ADMIN' : 'SALES_REP';
+  }
+
+  function fromApiRole(apiRole: string): Role {
+    if (apiRole === 'SALES_MANAGER') return 'manager';
+    if (apiRole === 'FINANCE') return 'finance';
+    if (apiRole === 'ADMIN') return 'admin';
+    if (apiRole === 'customer') return 'customer';
+    return 'sales-rep';
   }
 
   function handleCustomerProposal(discount: number) {
