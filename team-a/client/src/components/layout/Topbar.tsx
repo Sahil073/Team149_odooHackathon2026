@@ -10,7 +10,6 @@ type TopbarProps = {
   onNavigateToBackend: () => void;
   onLogout: () => void;
   role: Role;
-  userName: string;
 };
 
 export function Topbar({
@@ -21,7 +20,6 @@ export function Topbar({
   onNavigateToBackend,
   onLogout,
   role,
-  userName,
 }: TopbarProps) {
   const screenLabels: Record<Screen, string> = {
     dashboard: 'Overview',
@@ -114,18 +112,8 @@ export function Topbar({
           <LogOut size={17} />
         </button>
 
-        <span className="topbar-avatar avatar avatar-indigo">{getInitials(userName)}</span>
+        <span className="topbar-avatar avatar avatar-indigo">AK</span>
       </div>
     </header>
   );
-}
-
-function getInitials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase() || 'U';
 }
