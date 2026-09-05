@@ -1,11 +1,30 @@
-"""
-app.py � NOT YET BUILT.
+"""app.py — GET /api/upsell-suggestions/:quotationId (ICD §4)."""
 
-Sprint: Sprint 3
-Purpose: FastAPI GET /api/upsell-suggestions/:quotationId
+import threading
+from fastapi import FastAPI
+from datetime import datetime, timezone
+from models import UpsellSuggestionsReadyEvent
+from listener import start_listener
 
-This file is a placeholder so the full repo shape is visible from Sprint 1.
-Fill this in when its sprint starts.
-"""
+app = FastAPI(title="DealFlow360 — Upsell Engine (Team B)")
+LATEST_SUGGESTIONS: dict[str, UpsellSuggestionsReadyEvent] = {}
 
-# TODO (Sprint 3): implement fastapi get /api/upsell-suggestions/:quotationid
+
+@app.on_event("startup")
+def launch_listener():
+    threading.Thread(target=start_listener, args=(LATEST_SUGGESTIONS,), daemon=True).start()
+
+
+@app.get("/")
+def health_check():
+    return {"status": "ok", "service": "upsell-engine"}
+
+
+@app.get("/api/upsell-suggestions/{quotation_id}")
+def get_suggestions(quotation_id: str):
+    if quotation_id in LATEST_SUGGESTIONS:
+        return LATEST_SUGGESTIONS[quotation_id]
+    return UpsellSuggestionsReadyEvent(
+        eventVersion=1, quotationId=quotation_id, suggestions=[],
+        computedAt=datetime.now(timezone.utc).isoformat(),
+    )
