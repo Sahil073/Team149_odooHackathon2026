@@ -5,7 +5,7 @@
     "main": "dist/server.js",
     "scripts": {
         "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-        "build": "tsc",
+        "build": "prisma generate && tsc",
         "start": "node dist/server.js",
         "seed": "ts-node src/database/seeds/seed.ts",
         "db:start": "powershell -ExecutionPolicy Bypass -File ./start-postgres.ps1",

@@ -1,0 +1,40 @@
+databases:
+  - name: dealflow360-db
+    databaseName: dealflow360
+    user: postgres
+    plan: free
+    region: oregon
+
+services:
+  - type: web
+    name: dealflow360-backend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: team-a/server
+    buildCommand: npm install && npx prisma db push && npm run build && npm run seed
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dealflow360-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: PORTAL_JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: PORTAL_JWT_EXPIRES_IN
+        value: 12h
+      - key: CORS_ORIGIN
+        value: http://localhost:3000
+      - key: LOG_LEVEL
+        value: info
