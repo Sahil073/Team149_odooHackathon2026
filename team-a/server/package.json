@@ -1,0 +1,41 @@
+{
+    "name": "dealflow360-server",
+    "version": "1.0.0",
+    "description": "DealFlow360 Team A Core Platform Server",
+    "main": "dist/server.js",
+    "scripts": {
+        "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+        "build": "tsc",
+        "start": "node dist/server.js",
+        "seed": "ts-node src/database/seeds/seed.ts",
+        "db:start": "powershell -ExecutionPolicy Bypass -File ./start-postgres.ps1",
+        "test:e2e": "ts-node src/test-all.ts",
+        "test:audit": "ts-node src/test-comprehensive.ts"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.7",
+        "express": "^4.21.2",
+        "helmet": "^8.0.0",
+        "ioredis": "^5.4.2",
+        "jsonwebtoken": "^9.0.2",
+        "pino": "^9.6.0",
+        "pino-http": "^10.4.0",
+        "zod": "^3.24.1"
+    },
+    "devDependencies": {
+        "@prisma/client": "^5.22.0",
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/jsonwebtoken": "^9.0.7",
+        "@types/node": "^22.10.2",
+        "pino-pretty": "^13.0.0",
+        "prisma": "^5.22.0",
+        "ts-node": "^10.9.2",
+        "ts-node-dev": "^2.0.0",
+        "typescript": "^5.7.2"
+    },
+    "prisma": {
+        "seed": "ts-node src/database/seeds/seed.ts"
+    }
+}
