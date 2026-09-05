@@ -1,0 +1,752 @@
+[
+  {
+    "category": "System",
+    "method": "GET",
+    "endpoint": "/health",
+    "status": 200,
+    "passed": true,
+    "durationMs": 22,
+    "responseSnippet": "{\"status\":\"ok\"}",
+    "notes": "OK"
+  },
+  {
+    "category": "Auth",
+    "method": "POST",
+    "endpoint": "/api/auth/login",
+    "status": 200,
+    "passed": true,
+    "durationMs": 77,
+    "responseSnippet": "{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijk4NWQ0MDUxLTZmNzAtNDNlYS04ZGE1LTMyOThmZDJlODRlMCIsInJvbGUiOiJBRE1JTiIsImVtYWlsIjoiY",
+    "notes": "OK"
+  },
+  {
+    "category": "Auth",
+    "method": "POST",
+    "endpoint": "/api/auth/login",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImRlYzg1ZDkzLTkyOGEtNDVlYy1hYTM4LTQ3MmM4N2U3ZDhlMiIsInJvbGUiOiJTQUxFU19SRVAiLCJlbWFpb",
+    "notes": "OK"
+  },
+  {
+    "category": "Auth",
+    "method": "POST",
+    "endpoint": "/api/auth/login",
+    "status": 200,
+    "passed": true,
+    "durationMs": 3,
+    "responseSnippet": "{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ZGE4ZWYyLTY3ZmEtNDU5My04OWEyLWNjNTRmM2Q0ZDM2OCIsInJvbGUiOiJTQUxFU19NQU5BR0VSIiwiZ",
+    "notes": "OK"
+  },
+  {
+    "category": "Auth",
+    "method": "POST",
+    "endpoint": "/api/auth/portal-login",
+    "status": 200,
+    "passed": true,
+    "durationMs": 7,
+    "responseSnippet": "{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZmZDcyMWVlLWQyNDQtNDBhOC1iNDM5LWNhZjE1MGNiZWRiZSIsImVtYWlsIjoiY29udGFjdEBhY21lY29yc",
+    "notes": "OK"
+  },
+  {
+    "category": "Auth",
+    "method": "POST",
+    "endpoint": "/api/auth/signup",
+    "status": 201,
+    "passed": true,
+    "durationMs": 14,
+    "responseSnippet": "{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImEwZmNjYTdmLTE1NTktNDExNy04ZmQ3LTI0MTYzYTY2YmNjMiIsInJvbGUiOiJTQUxFU19SRVAiLCJlbWFpb",
+    "notes": "OK"
+  },
+  {
+    "category": "Auth",
+    "method": "GET",
+    "endpoint": "/api/auth/me",
+    "status": 200,
+    "passed": true,
+    "durationMs": 7,
+    "responseSnippet": "{\"data\":{\"id\":\"985d4051-6f70-43ea-8da5-3298fd2e84e0\",\"name\":\"System Admin\",\"email\":\"admin@dealflow360.com\",\"role\":\"ADMIN\",\"createdAt\":\"2026-",
+    "notes": "OK"
+  },
+  {
+    "category": "Products",
+    "method": "GET",
+    "endpoint": "/api/products",
+    "status": 200,
+    "passed": true,
+    "durationMs": 24,
+    "responseSnippet": "{\"data\":[{\"id\":\"p-hardware-backup\",\"name\":\"Cloud Backup Appliance 2TB\",\"category\":\"HARDWARE\",\"price\":\"800\",\"unit\":\"unit\",\"taxPct\":18,\"descri",
+    "notes": "OK"
+  },
+  {
+    "category": "Products",
+    "method": "GET",
+    "endpoint": "/api/products?category=HARDWARE",
+    "status": 200,
+    "passed": true,
+    "durationMs": 9,
+    "responseSnippet": "{\"data\":[{\"id\":\"p-hardware-backup\",\"name\":\"Cloud Backup Appliance 2TB\",\"category\":\"HARDWARE\",\"price\":\"800\",\"unit\":\"unit\",\"taxPct\":18,\"descri",
+    "notes": "OK"
+  },
+  {
+    "category": "Products",
+    "method": "GET",
+    "endpoint": "/api/products/p-hardware-backup",
+    "status": 200,
+    "passed": true,
+    "durationMs": 12,
+    "responseSnippet": "{\"data\":{\"id\":\"p-hardware-backup\",\"name\":\"Cloud Backup Appliance 2TB\",\"category\":\"HARDWARE\",\"price\":\"800\",\"unit\":\"unit\",\"taxPct\":18,\"descrip",
+    "notes": "OK"
+  },
+  {
+    "category": "Products",
+    "method": "POST",
+    "endpoint": "/api/products",
+    "status": 201,
+    "passed": true,
+    "durationMs": 9,
+    "responseSnippet": "{\"data\":{\"id\":\"7bc2c04b-ca13-411d-85ae-7095ec9eddfc\",\"name\":\"Audit Test Product\",\"category\":\"HARDWARE\",\"price\":\"199.99\",\"unit\":\"unit\",\"taxPc",
+    "notes": "OK"
+  },
+  {
+    "category": "Products",
+    "method": "PATCH",
+    "endpoint": "/api/products/7bc2c04b-ca13-411d-85ae-7095ec9eddfc",
+    "status": 200,
+    "passed": true,
+    "durationMs": 9,
+    "responseSnippet": "{\"data\":{\"id\":\"7bc2c04b-ca13-411d-85ae-7095ec9eddfc\",\"name\":\"Updated Audit Test Product\",\"category\":\"HARDWARE\",\"price\":\"219.99\",\"unit\":\"unit",
+    "notes": "OK"
+  },
+  {
+    "category": "Products",
+    "method": "POST",
+    "endpoint": "/api/products/7bc2c04b-ca13-411d-85ae-7095ec9eddfc/variants",
+    "status": 201,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":{\"id\":\"640f9f53-d28b-4abe-9378-2aa250f27cc5\",\"productId\":\"7bc2c04b-ca13-411d-85ae-7095ec9eddfc\",\"attribute\":\"Color\",\"value\":\"Matte B",
+    "notes": "OK"
+  },
+  {
+    "category": "Products",
+    "method": "DELETE",
+    "endpoint": "/api/products/7bc2c04b-ca13-411d-85ae-7095ec9eddfc/variants/640f9f53-d28b-4abe-9378-2aa250f27cc5",
+    "status": 200,
+    "passed": true,
+    "durationMs": 4,
+    "responseSnippet": "{\"message\":\"Variant deleted successfully\"}",
+    "notes": "OK"
+  },
+  {
+    "category": "Products",
+    "method": "DELETE",
+    "endpoint": "/api/products/7bc2c04b-ca13-411d-85ae-7095ec9eddfc",
+    "status": 200,
+    "passed": true,
+    "durationMs": 9,
+    "responseSnippet": "{\"message\":\"Product deleted successfully\"}",
+    "notes": "OK"
+  },
+  {
+    "category": "Customers",
+    "method": "GET",
+    "endpoint": "/api/customers",
+    "status": 200,
+    "passed": true,
+    "durationMs": 11,
+    "responseSnippet": "{\"data\":[{\"id\":\"6fd721ee-d244-40a8-b439-caf150cbedbe\",\"name\":\"Acme Corp\",\"email\":\"contact@acmecorp.com\",\"tier\":\"BRONZE\",\"createdAt\":\"2026-09",
+    "notes": "OK"
+  },
+  {
+    "category": "Customers",
+    "method": "GET",
+    "endpoint": "/api/customers?tier=BRONZE",
+    "status": 200,
+    "passed": true,
+    "durationMs": 4,
+    "responseSnippet": "{\"data\":[{\"id\":\"6fd721ee-d244-40a8-b439-caf150cbedbe\",\"name\":\"Acme Corp\",\"email\":\"contact@acmecorp.com\",\"tier\":\"BRONZE\",\"createdAt\":\"2026-09",
+    "notes": "OK"
+  },
+  {
+    "category": "Customers",
+    "method": "GET",
+    "endpoint": "/api/customers/6fd721ee-d244-40a8-b439-caf150cbedbe",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":{\"id\":\"6fd721ee-d244-40a8-b439-caf150cbedbe\",\"name\":\"Acme Corp\",\"email\":\"contact@acmecorp.com\",\"tier\":\"BRONZE\",\"createdAt\":\"2026-09-",
+    "notes": "OK"
+  },
+  {
+    "category": "Customers",
+    "method": "POST",
+    "endpoint": "/api/customers",
+    "status": 201,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":{\"id\":\"5d0c566b-1a9b-4ad2-b604-66026e19290a\",\"name\":\"Audit Customer Corp\",\"email\":\"cust.1788636580450@audit.com\",\"tier\":\"SILVER\",\"cr",
+    "notes": "OK"
+  },
+  {
+    "category": "Customers",
+    "method": "PATCH",
+    "endpoint": "/api/customers/5d0c566b-1a9b-4ad2-b604-66026e19290a",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":{\"id\":\"5d0c566b-1a9b-4ad2-b604-66026e19290a\",\"name\":\"Audit Customer Corp Updated\",\"email\":\"cust.1788636580450@audit.com\",\"tier\":\"GOL",
+    "notes": "OK"
+  },
+  {
+    "category": "Customers",
+    "method": "DELETE",
+    "endpoint": "/api/customers/5d0c566b-1a9b-4ad2-b604-66026e19290a",
+    "status": 200,
+    "passed": true,
+    "durationMs": 4,
+    "responseSnippet": "{\"message\":\"Customer deleted successfully\"}",
+    "notes": "OK"
+  },
+  {
+    "category": "Warehouses",
+    "method": "GET",
+    "endpoint": "/api/warehouses",
+    "status": 200,
+    "passed": true,
+    "durationMs": 3,
+    "responseSnippet": "{\"data\":[{\"id\":\"w-east-depot\",\"name\":\"East Depot\",\"location\":\"Kolkata Regional Hub\",\"_count\":{\"stock\":2}},{\"id\":\"w-main-warehouse\",\"name\":\"M",
+    "notes": "OK"
+  },
+  {
+    "category": "Warehouses",
+    "method": "GET",
+    "endpoint": "/api/warehouses/w-east-depot",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":{\"id\":\"w-east-depot\",\"name\":\"East Depot\",\"location\":\"Kolkata Regional Hub\",\"stock\":[{\"id\":\"478b5435-9304-4c78-9713-e131e0999789\",\"wa",
+    "notes": "OK"
+  },
+  {
+    "category": "Warehouses",
+    "method": "POST",
+    "endpoint": "/api/warehouses",
+    "status": 201,
+    "passed": true,
+    "durationMs": 4,
+    "responseSnippet": "{\"data\":{\"id\":\"ac9afa8f-8371-402f-a437-1f5199f6d2af\",\"name\":\"Audit Warehouse 1788636580472\",\"location\":\"Seattle West\"},\"message\":\"Warehouse ",
+    "notes": "OK"
+  },
+  {
+    "category": "Warehouses",
+    "method": "PATCH",
+    "endpoint": "/api/warehouses/ac9afa8f-8371-402f-a437-1f5199f6d2af",
+    "status": 200,
+    "passed": true,
+    "durationMs": 3,
+    "responseSnippet": "{\"data\":{\"id\":\"ac9afa8f-8371-402f-a437-1f5199f6d2af\",\"name\":\"Audit Warehouse 1788636580472\",\"location\":\"Seattle West\"},\"message\":\"Warehouse ",
+    "notes": "OK"
+  },
+  {
+    "category": "Warehouses",
+    "method": "DELETE",
+    "endpoint": "/api/warehouses/ac9afa8f-8371-402f-a437-1f5199f6d2af",
+    "status": 200,
+    "passed": true,
+    "durationMs": 7,
+    "responseSnippet": "{\"message\":\"Warehouse deleted successfully\"}",
+    "notes": "OK"
+  },
+  {
+    "category": "Stock",
+    "method": "GET",
+    "endpoint": "/api/stock",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":[{\"id\":\"49738131-34b6-458c-93b2-79dd86fb58a2\",\"warehouseId\":\"w-east-depot\",\"productId\":\"p-hardware-backup\",\"qtyAvailable\":55,\"qtyRes",
+    "notes": "OK"
+  },
+  {
+    "category": "Stock",
+    "method": "GET",
+    "endpoint": "/api/stock/w-east-depot/p-hardware-backup",
+    "status": 200,
+    "passed": true,
+    "durationMs": 4,
+    "responseSnippet": "{\"data\":{\"id\":\"49738131-34b6-458c-93b2-79dd86fb58a2\",\"warehouseId\":\"w-east-depot\",\"productId\":\"p-hardware-backup\",\"qtyAvailable\":55,\"qtyRese",
+    "notes": "OK"
+  },
+  {
+    "category": "Stock",
+    "method": "POST",
+    "endpoint": "/api/stock",
+    "status": 200,
+    "passed": true,
+    "durationMs": 7,
+    "responseSnippet": "{\"data\":{\"id\":\"49738131-34b6-458c-93b2-79dd86fb58a2\",\"warehouseId\":\"w-east-depot\",\"productId\":\"p-hardware-backup\",\"qtyAvailable\":50,\"qtyRese",
+    "notes": "OK"
+  },
+  {
+    "category": "Stock",
+    "method": "PATCH",
+    "endpoint": "/api/stock/w-east-depot/p-hardware-backup",
+    "status": 200,
+    "passed": true,
+    "durationMs": 6,
+    "responseSnippet": "{\"data\":{\"id\":\"49738131-34b6-458c-93b2-79dd86fb58a2\",\"warehouseId\":\"w-east-depot\",\"productId\":\"p-hardware-backup\",\"qtyAvailable\":55,\"qtyRese",
+    "notes": "OK"
+  },
+  {
+    "category": "Pricing",
+    "method": "GET",
+    "endpoint": "/api/pricing",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":[{\"id\":\"5d4d8d66-6827-4d33-8c72-dcfb42c02ca0\",\"customerTier\":\"BRONZE\",\"currency\":\"USD\",\"priceRule\":\"Standard Base Price\"},{\"id\":\"dff",
+    "notes": "OK"
+  },
+  {
+    "category": "Pricing",
+    "method": "GET",
+    "endpoint": "/api/pricing/5d4d8d66-6827-4d33-8c72-dcfb42c02ca0",
+    "status": 200,
+    "passed": true,
+    "durationMs": 4,
+    "responseSnippet": "{\"data\":{\"id\":\"5d4d8d66-6827-4d33-8c72-dcfb42c02ca0\",\"customerTier\":\"BRONZE\",\"currency\":\"USD\",\"priceRule\":\"Standard Base Price\"}}",
+    "notes": "OK"
+  },
+  {
+    "category": "Pricing",
+    "method": "POST",
+    "endpoint": "/api/pricing",
+    "status": 201,
+    "passed": true,
+    "durationMs": 3,
+    "responseSnippet": "{\"data\":{\"id\":\"df2c9795-cd49-47d7-a895-4c82872d5a43\",\"customerTier\":\"SILVER\",\"currency\":\"USD\",\"priceRule\":\"Cost + 20% margin standard formul",
+    "notes": "OK"
+  },
+  {
+    "category": "Pricing",
+    "method": "PATCH",
+    "endpoint": "/api/pricing/df2c9795-cd49-47d7-a895-4c82872d5a43",
+    "status": 200,
+    "passed": true,
+    "durationMs": 3,
+    "responseSnippet": "{\"data\":{\"id\":\"df2c9795-cd49-47d7-a895-4c82872d5a43\",\"customerTier\":\"SILVER\",\"currency\":\"USD\",\"priceRule\":\"Cost + 25% updated formula\"},\"mes",
+    "notes": "OK"
+  },
+  {
+    "category": "Pricing",
+    "method": "DELETE",
+    "endpoint": "/api/pricing/df2c9795-cd49-47d7-a895-4c82872d5a43",
+    "status": 200,
+    "passed": true,
+    "durationMs": 3,
+    "responseSnippet": "{\"message\":\"Price list deleted successfully\"}",
+    "notes": "OK"
+  },
+  {
+    "category": "Discounts",
+    "method": "GET",
+    "endpoint": "/api/discounts",
+    "status": 200,
+    "passed": true,
+    "durationMs": 67,
+    "responseSnippet": "{\"data\":{\"discountTiers\":[{\"id\":\"13bd26f7-dfcb-40cb-a171-63150fcceb50\",\"tierName\":\"Bronze\",\"maxDiscountPct\":5},{\"id\":\"c205f86b-f0e3-42f4-88f",
+    "notes": "OK"
+  },
+  {
+    "category": "Discounts",
+    "method": "POST",
+    "endpoint": "/api/discounts/tiers",
+    "status": 200,
+    "passed": true,
+    "durationMs": 7,
+    "responseSnippet": "{\"data\":{\"id\":\"4d3a5a7d-566f-4e41-befc-a4462e003b9f\",\"tierName\":\"Platinum\",\"maxDiscountPct\":25},\"message\":\"Discount tier saved successfully\"",
+    "notes": "OK"
+  },
+  {
+    "category": "Discounts",
+    "method": "DELETE",
+    "endpoint": "/api/discounts/tiers/4d3a5a7d-566f-4e41-befc-a4462e003b9f",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"message\":\"Discount tier deleted successfully\"}",
+    "notes": "OK"
+  },
+  {
+    "category": "Discounts",
+    "method": "POST",
+    "endpoint": "/api/discounts/categories",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":{\"id\":\"d3167caa-508a-4328-9c7a-ff20046d112d\",\"category\":\"HARDWARE\",\"maxDiscountPct\":20},\"message\":\"Category discount limit saved suc",
+    "notes": "OK"
+  },
+  {
+    "category": "Discounts",
+    "method": "DELETE",
+    "endpoint": "/api/discounts/categories/d3167caa-508a-4328-9c7a-ff20046d112d",
+    "status": 200,
+    "passed": true,
+    "durationMs": 4,
+    "responseSnippet": "{\"message\":\"Category discount limit deleted successfully\"}",
+    "notes": "OK"
+  },
+  {
+    "category": "Approval Chains",
+    "method": "GET",
+    "endpoint": "/api/approval-chains",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":[{\"id\":\"5c2abd4c-c653-4dfa-86c3-eea6c6134c57\",\"discountRangeMin\":0,\"discountRangeMax\":5,\"requiresManager\":false,\"requiresFinance\":fa",
+    "notes": "OK"
+  },
+  {
+    "category": "Approval Chains",
+    "method": "POST",
+    "endpoint": "/api/approval-chains",
+    "status": 201,
+    "passed": true,
+    "durationMs": 4,
+    "responseSnippet": "{\"data\":{\"id\":\"a1a1cebe-0f71-4fa9-bd1c-2b5cae19ae13\",\"discountRangeMin\":75,\"discountRangeMax\":100,\"requiresManager\":true,\"requiresFinance\":t",
+    "notes": "OK"
+  },
+  {
+    "category": "Approval Chains",
+    "method": "DELETE",
+    "endpoint": "/api/approval-chains/a1a1cebe-0f71-4fa9-bd1c-2b5cae19ae13",
+    "status": 200,
+    "passed": true,
+    "durationMs": 3,
+    "responseSnippet": "{\"message\":\"Approval chain rule deleted successfully\"}",
+    "notes": "OK"
+  },
+  {
+    "category": "Upsell Rules",
+    "method": "GET",
+    "endpoint": "/api/upsell-rules",
+    "status": 200,
+    "passed": true,
+    "durationMs": 10,
+    "responseSnippet": "{\"data\":[{\"id\":\"0e424909-fdf1-49d9-88bb-1cb55514f982\",\"baseProductId\":\"p-hardware-server-rack\",\"suggestedProductId\":\"p-hardware-backup\",\"min",
+    "notes": "OK"
+  },
+  {
+    "category": "Upsell Rules",
+    "method": "POST",
+    "endpoint": "/api/upsell-rules",
+    "status": 200,
+    "passed": true,
+    "durationMs": 8,
+    "responseSnippet": "{\"data\":{\"id\":\"9f847420-d364-4b71-b492-852ee51c88b4\",\"baseProductId\":\"p-hardware-backup\",\"suggestedProductId\":\"p-hardware-server-rack\",\"minM",
+    "notes": "OK"
+  },
+  {
+    "category": "Upsell Rules",
+    "method": "PATCH",
+    "endpoint": "/api/upsell-rules/9f847420-d364-4b71-b492-852ee51c88b4",
+    "status": 200,
+    "passed": true,
+    "durationMs": 4,
+    "responseSnippet": "{\"data\":{\"id\":\"9f847420-d364-4b71-b492-852ee51c88b4\",\"baseProductId\":\"p-hardware-backup\",\"suggestedProductId\":\"p-hardware-server-rack\",\"minM",
+    "notes": "OK"
+  },
+  {
+    "category": "Upsell Rules",
+    "method": "DELETE",
+    "endpoint": "/api/upsell-rules/9f847420-d364-4b71-b492-852ee51c88b4",
+    "status": 200,
+    "passed": true,
+    "durationMs": 3,
+    "responseSnippet": "{\"message\":\"Upsell rule deleted successfully\"}",
+    "notes": "OK"
+  },
+  {
+    "category": "Quotations",
+    "method": "GET",
+    "endpoint": "/api/quotations",
+    "status": 200,
+    "passed": true,
+    "durationMs": 18,
+    "responseSnippet": "{\"data\":[{\"id\":\"6207b70b-b7cb-4610-8e9b-5a8fbd02d462\",\"customerId\":\"6fd721ee-d244-40a8-b439-caf150cbedbe\",\"salesRepId\":\"dec85d93-928a-45ec-a",
+    "notes": "OK"
+  },
+  {
+    "category": "Quotations",
+    "method": "POST",
+    "endpoint": "/api/quotations",
+    "status": 201,
+    "passed": true,
+    "durationMs": 16,
+    "responseSnippet": "{\"data\":{\"id\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"customerId\":\"6fd721ee-d244-40a8-b439-caf150cbedbe\",\"salesRepId\":\"dec85d93-928a-45ec-aa",
+    "notes": "OK"
+  },
+  {
+    "category": "Quotations",
+    "method": "GET",
+    "endpoint": "/api/quotations/06da1605-5702-4cde-ab2b-3204dc1b9609",
+    "status": 200,
+    "passed": true,
+    "durationMs": 25,
+    "responseSnippet": "{\"data\":{\"id\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"customerId\":\"6fd721ee-d244-40a8-b439-caf150cbedbe\",\"salesRepId\":\"dec85d93-928a-45ec-aa",
+    "notes": "OK"
+  },
+  {
+    "category": "Quotations",
+    "method": "PATCH",
+    "endpoint": "/api/quotations/06da1605-5702-4cde-ab2b-3204dc1b9609/lines",
+    "status": 200,
+    "passed": true,
+    "durationMs": 15,
+    "responseSnippet": "{\"data\":{\"id\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"customerId\":\"6fd721ee-d244-40a8-b439-caf150cbedbe\",\"salesRepId\":\"dec85d93-928a-45ec-aa",
+    "notes": "OK"
+  },
+  {
+    "category": "Smart Layer",
+    "method": "GET",
+    "endpoint": "/api/risk-score/06da1605-5702-4cde-ab2b-3204dc1b9609",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"eventVersion\":1,\"quotationId\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"blendedRiskScore\":0.53,\"requiresApproval\":true,\"requiresFinance\":tru",
+    "notes": "OK"
+  },
+  {
+    "category": "Smart Layer",
+    "method": "GET",
+    "endpoint": "/api/upsell-suggestions/06da1605-5702-4cde-ab2b-3204dc1b9609",
+    "status": 200,
+    "passed": true,
+    "durationMs": 8,
+    "responseSnippet": "{\"quotationId\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"suggestions\":[{\"productId\":\"p-sub-monitoring\",\"productName\":\"Premium SaaS Cloud Monit",
+    "notes": "OK"
+  },
+  {
+    "category": "Approvals",
+    "method": "GET",
+    "endpoint": "/api/approvals",
+    "status": 200,
+    "passed": true,
+    "durationMs": 9,
+    "responseSnippet": "{\"data\":[{\"id\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"customerId\":\"6fd721ee-d244-40a8-b439-caf150cbedbe\",\"salesRepId\":\"dec85d93-928a-45ec-a",
+    "notes": "OK"
+  },
+  {
+    "category": "Approvals",
+    "method": "POST",
+    "endpoint": "/api/approvals/06da1605-5702-4cde-ab2b-3204dc1b9609/approve",
+    "status": 200,
+    "passed": true,
+    "durationMs": 11,
+    "responseSnippet": "{\"data\":{\"id\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"customerId\":\"6fd721ee-d244-40a8-b439-caf150cbedbe\",\"salesRepId\":\"dec85d93-928a-45ec-aa",
+    "notes": "OK"
+  },
+  {
+    "category": "Fulfillment",
+    "method": "GET",
+    "endpoint": "/api/fulfillment/06da1605-5702-4cde-ab2b-3204dc1b9609/suggest-split",
+    "status": 200,
+    "passed": true,
+    "durationMs": 12,
+    "responseSnippet": "{\"quotationId\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"splits\":[{\"warehouseId\":\"w-east-depot\",\"warehouseName\":\"East Depot\",\"qty\":4,\"estCost\"",
+    "notes": "OK"
+  },
+  {
+    "category": "Fulfillment",
+    "method": "POST",
+    "endpoint": "/api/fulfillment/06da1605-5702-4cde-ab2b-3204dc1b9609/splits",
+    "status": 201,
+    "passed": true,
+    "durationMs": 14,
+    "responseSnippet": "{\"data\":[{\"id\":\"3d32e0e5-effd-4dd6-879d-e14f134abc9f\",\"quotationId\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"warehouseId\":\"w-east-depot\",\"qty",
+    "notes": "OK"
+  },
+  {
+    "category": "Fulfillment",
+    "method": "GET",
+    "endpoint": "/api/fulfillment/06da1605-5702-4cde-ab2b-3204dc1b9609/splits",
+    "status": 200,
+    "passed": true,
+    "durationMs": 3,
+    "responseSnippet": "{\"data\":[{\"id\":\"3d32e0e5-effd-4dd6-879d-e14f134abc9f\",\"quotationId\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"warehouseId\":\"w-east-depot\",\"qty",
+    "notes": "OK"
+  },
+  {
+    "category": "Subscriptions",
+    "method": "GET",
+    "endpoint": "/api/subscriptions/plans",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":[{\"id\":\"plan-monthly-std\",\"name\":\"Enterprise Cloud Monthly\",\"cycle\":\"MONTHLY\",\"prorationRule\":\"calendar_days\"},{\"id\":\"plan-yearly-st",
+    "notes": "OK"
+  },
+  {
+    "category": "Subscriptions",
+    "method": "POST",
+    "endpoint": "/api/subscriptions/attach",
+    "status": 200,
+    "passed": true,
+    "durationMs": 10,
+    "responseSnippet": "{\"data\":{\"id\":\"5ca09f56-3894-4798-8adf-f1b4ac4a43ee\",\"quotationId\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"planId\":\"plan-monthly-std\",\"statu",
+    "notes": "OK"
+  },
+  {
+    "category": "Subscriptions",
+    "method": "GET",
+    "endpoint": "/api/subscriptions",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":[{\"id\":\"a8c6e955-504d-47c6-8dff-c1e0bf0270ae\",\"quotationId\":\"c91238f2-7a67-4a3a-ab0e-e3dec1790b85\",\"planId\":\"plan-monthly-std\",\"stat",
+    "notes": "OK"
+  },
+  {
+    "category": "Subscriptions",
+    "method": "PATCH",
+    "endpoint": "/api/subscriptions/a8c6e955-504d-47c6-8dff-c1e0bf0270ae/status",
+    "status": 200,
+    "passed": true,
+    "durationMs": 6,
+    "responseSnippet": "{\"data\":{\"id\":\"a8c6e955-504d-47c6-8dff-c1e0bf0270ae\",\"quotationId\":\"c91238f2-7a67-4a3a-ab0e-e3dec1790b85\",\"planId\":\"plan-monthly-std\",\"statu",
+    "notes": "OK"
+  },
+  {
+    "category": "Invoices",
+    "method": "POST",
+    "endpoint": "/api/invoices/generate/06da1605-5702-4cde-ab2b-3204dc1b9609",
+    "status": 201,
+    "passed": true,
+    "durationMs": 6,
+    "responseSnippet": "{\"data\":[{\"id\":\"4a05c819-11e2-4d13-9f0f-6366ae644a59\",\"quotationId\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"type\":\"ONE_TIME\",\"amount\":\"3096.",
+    "notes": "OK"
+  },
+  {
+    "category": "Invoices",
+    "method": "GET",
+    "endpoint": "/api/invoices",
+    "status": 200,
+    "passed": true,
+    "durationMs": 10,
+    "responseSnippet": "{\"data\":[{\"id\":\"5b72bc82-42dd-4176-beae-329b8e198fad\",\"quotationId\":\"8f6ce30c-d7cf-4521-bf6f-68f87d55d913\",\"type\":\"ONE_TIME\",\"amount\":\"1793.",
+    "notes": "OK"
+  },
+  {
+    "category": "Invoices",
+    "method": "GET",
+    "endpoint": "/api/invoices/4a05c819-11e2-4d13-9f0f-6366ae644a59",
+    "status": 200,
+    "passed": true,
+    "durationMs": 6,
+    "responseSnippet": "{\"data\":{\"id\":\"4a05c819-11e2-4d13-9f0f-6366ae644a59\",\"quotationId\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"type\":\"ONE_TIME\",\"amount\":\"3096.3",
+    "notes": "OK"
+  },
+  {
+    "category": "Payments",
+    "method": "POST",
+    "endpoint": "/api/payments",
+    "status": 201,
+    "passed": true,
+    "durationMs": 7,
+    "responseSnippet": "{\"data\":{\"id\":\"e2c2fc45-a175-4964-9034-baeaaf0cc50d\",\"invoiceId\":\"4a05c819-11e2-4d13-9f0f-6366ae644a59\",\"amount\":\"200\",\"method\":\"CARD\",\"paid",
+    "notes": "OK"
+  },
+  {
+    "category": "Payments",
+    "method": "GET",
+    "endpoint": "/api/payments/4a05c819-11e2-4d13-9f0f-6366ae644a59",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":[{\"id\":\"e2c2fc45-a175-4964-9034-baeaaf0cc50d\",\"invoiceId\":\"4a05c819-11e2-4d13-9f0f-6366ae644a59\",\"amount\":\"200\",\"method\":\"CARD\",\"pai",
+    "notes": "OK"
+  },
+  {
+    "category": "Portal",
+    "method": "GET",
+    "endpoint": "/api/portal/quotations/06da1605-5702-4cde-ab2b-3204dc1b9609",
+    "status": 200,
+    "passed": true,
+    "durationMs": 5,
+    "responseSnippet": "{\"data\":{\"id\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"customerId\":\"6fd721ee-d244-40a8-b439-caf150cbedbe\",\"salesRepId\":\"dec85d93-928a-45ec-aa",
+    "notes": "OK"
+  },
+  {
+    "category": "Quotations",
+    "method": "POST",
+    "endpoint": "/api/quotations",
+    "status": 201,
+    "passed": true,
+    "durationMs": 7,
+    "responseSnippet": "{\"data\":{\"id\":\"17014f47-13ff-4b92-a553-27a2db32c2a1\",\"customerId\":\"6fd721ee-d244-40a8-b439-caf150cbedbe\",\"salesRepId\":\"dec85d93-928a-45ec-aa",
+    "notes": "OK"
+  },
+  {
+    "category": "Quotations",
+    "method": "DELETE",
+    "endpoint": "/api/quotations/17014f47-13ff-4b92-a553-27a2db32c2a1",
+    "status": 200,
+    "passed": true,
+    "durationMs": 6,
+    "responseSnippet": "{\"message\":\"Draft quotation deleted successfully\"}",
+    "notes": "OK"
+  },
+  {
+    "category": "Deal Health",
+    "method": "GET",
+    "endpoint": "/api/deal-health-flags",
+    "status": 200,
+    "passed": true,
+    "durationMs": 6,
+    "responseSnippet": "{\"data\":[{\"id\":\"397baae6-0d43-45c8-ab00-1da9e061ab91\",\"quotationId\":\"4f71adc2-d533-435a-9671-15814482531b\",\"flagType\":\"DISCOUNT_ANOMALY\",\"se",
+    "notes": "OK"
+  },
+  {
+    "category": "Deal Health",
+    "method": "PATCH",
+    "endpoint": "/api/deal-health-flags/397baae6-0d43-45c8-ab00-1da9e061ab91/resolve",
+    "status": 200,
+    "passed": true,
+    "durationMs": 6,
+    "responseSnippet": "{\"data\":{\"id\":\"397baae6-0d43-45c8-ab00-1da9e061ab91\",\"quotationId\":\"4f71adc2-d533-435a-9671-15814482531b\",\"flagType\":\"DISCOUNT_ANOMALY\",\"sev",
+    "notes": "OK"
+  },
+  {
+    "category": "Cron",
+    "method": "POST",
+    "endpoint": "/api/cron/deal-health-scan",
+    "status": 200,
+    "passed": true,
+    "durationMs": 14,
+    "responseSnippet": "{\"message\":\"Deal health scan completed successfully\",\"newFlagsCreated\":1}",
+    "notes": "OK"
+  },
+  {
+    "category": "Audit Log",
+    "method": "GET",
+    "endpoint": "/api/audit-log",
+    "status": 200,
+    "passed": true,
+    "durationMs": 7,
+    "responseSnippet": "{\"data\":[{\"id\":\"9bb0b0ab-e361-4931-8a5d-3e2260d0d6bd\",\"entityType\":\"Quotation\",\"entityId\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"userId\":nu",
+    "notes": "OK"
+  },
+  {
+    "category": "Audit Log",
+    "method": "GET",
+    "endpoint": "/api/audit-log?entityType=Quotation",
+    "status": 200,
+    "passed": true,
+    "durationMs": 4,
+    "responseSnippet": "{\"data\":[{\"id\":\"9bb0b0ab-e361-4931-8a5d-3e2260d0d6bd\",\"entityType\":\"Quotation\",\"entityId\":\"06da1605-5702-4cde-ab2b-3204dc1b9609\",\"userId\":nu",
+    "notes": "OK"
+  }
+]

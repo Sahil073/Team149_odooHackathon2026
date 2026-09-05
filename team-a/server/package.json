@@ -9,7 +9,8 @@
         "start": "node dist/server.js",
         "seed": "ts-node src/database/seeds/seed.ts",
         "db:start": "powershell -ExecutionPolicy Bypass -File ./start-postgres.ps1",
-        "test:e2e": "ts-node src/test-all.ts"
+        "test:e2e": "ts-node src/test-all.ts",
+        "test:audit": "ts-node src/test-comprehensive.ts"
     },
     "dependencies": {
         "cors": "^2.8.5",
