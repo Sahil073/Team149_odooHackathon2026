@@ -89,9 +89,7 @@ import type {
 
 function App() {
   const [authenticated, setAuthenticated] = useState(hasToken);
-  const storedUser = getStoredUser();
-  const [userName, setUserName] = useState(storedUser?.name || 'User');
-  const [role, setRole] = useState<Role>(storedUser ? fromApiRole(storedUser.role) : 'sales-rep');
+  const [role, setRole] = useState<Role>('sales-rep');
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [screen, setScreen] = useState<Screen>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -233,9 +231,6 @@ function App() {
             toApiRole(role),
           );
       saveToken(response.token);
-      saveUser(response.user);
-      setUserName(response.user.name);
-      setRole(fromApiRole(response.user.role));
       setAuthenticated(true);
       setAuthMessage('');
       setScreen('dashboard');
@@ -531,7 +526,6 @@ function App() {
         onClose={() => setSidebarOpen(false)}
         onNavigate={(nextScreen) => setScreen(nextScreen)}
         role={role}
-        userName={userName}
       />
       <div className="app-main">
         <Topbar
@@ -542,7 +536,6 @@ function App() {
           onNavigateToBackend={handleNavigateToBackend}
           onLogout={handleLogout}
           role={role}
-          userName={userName}
         />
         <main className="page-content">
           {screen === 'dashboard' ? (
@@ -555,7 +548,6 @@ function App() {
               onNavigate={setScreen}
               onOpenQuote={setSelectedQuote}
               onNewQuotation={createQuotation}
-              userName={userName}
             />
           ) : screen === 'quotations' ? (
             <QuotationsPage
