@@ -1,9 +1,18 @@
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { ReceiptIcon } from '../../components/common/Icons';
-import { invoices } from '../../data/demoData';
 import type { Invoice, InvoiceStatus } from '../../types';
 
-export function InvoicesPage({ filter, onFilter, onOpen }: { filter: 'All' | InvoiceStatus; onFilter: (filter: 'All' | InvoiceStatus) => void; onOpen: (invoice: Invoice) => void }) {
+export function InvoicesPage({
+  invoices = [],
+  filter,
+  onFilter,
+  onOpen,
+}: {
+  invoices?: Invoice[];
+  filter: 'All' | InvoiceStatus;
+  onFilter: (filter: 'All' | InvoiceStatus) => void;
+  onOpen: (invoice: Invoice) => void;
+}) {
   const filteredRows = filter === 'All' ? invoices : invoices.filter((invoice) => invoice.status === filter);
   const unpaid = invoices.filter((invoice) => invoice.status === 'Unpaid').length;
   const paid = invoices.filter((invoice) => invoice.status === 'Paid').length;
