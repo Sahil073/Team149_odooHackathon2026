@@ -69,6 +69,42 @@ gateway.add_middleware(
 @gateway.on_event("startup")
 def launch_workers():
     health_db.init_db()
+    
+    # Launch background worker threads for Redis Pub/Sub if available
+    try:
+        import threading
+        # 1. Risk Engine Listener
+        try:
+            risk_listener = _load_module("risk_listener", risk_dir / "listener.py")
+            t_risk = threading.Thread(target=risk_listener.start_listener, args=(LATEST_SCORES,), daemon=True)
+            t_risk.start()
+            print("[gateway] Risk Engine listener thread started.")
+        except Exception as e:
+            print(f"[gateway] Note: Risk listener not started ({e})")
+
+        # 2. Upsell Engine Listener
+        try:
+            upsell_listener = _load_module("upsell_listener", upsell_dir / "listener.py")
+            t_upsell = threading.Thread(target=upsell_listener.start_listener, args=(LATEST_SUGGESTIONS,), daemon=True)
+            t_upsell.start()
+            print("[gateway] Upsell Engine listener thread started.")
+        except Exception as e:
+            print(f"[gateway] Note: Upsell listener not started ({e})")
+
+        # 3. Deal Health Listener & Scheduler
+        try:
+            health_listener = _load_module("health_listener", health_dir / "listener.py")
+            health_scheduler = _load_module("health_scheduler", health_dir / "scheduler.py")
+            t_health = threading.Thread(target=health_listener.start_listener, daemon=True)
+            t_health.start()
+            t_sched = threading.Thread(target=health_scheduler.start_scheduler, daemon=True)
+            t_sched.start()
+            print("[gateway] Deal Health listener & scheduler threads started.")
+        except Exception as e:
+            print(f"[gateway] Note: Deal Health workers not started ({e})")
+    except Exception as e:
+        print(f"[gateway] Background worker setup note: {e}")
+
     print("[gateway] Smart Layer Unified Gateway running on port 8000.")
 
 
@@ -81,8 +117,10 @@ def liveness():
         "endpoints": [
             "/risk-score/{id}",
             "/api/risk-score/{id}",
+            "/api/risk-score/calculate",
             "/upsell-suggestions/{id}",
             "/api/upsell-suggestions/{id}",
+            "/api/upsell-suggestions/compute",
             "/deal-health-flags",
             "/api/deal-health-flags",
             "/api/ai/win-probability",
@@ -93,6 +131,60 @@ def liveness():
 # -----------------------------------------------------------------------------
 # 1. Discount Risk Engine Routes
 # -----------------------------------------------------------------------------
+class RiskCalcLine(BaseModel):
+    lineId: Optional[str] = None
+    productId: Optional[str] = None
+    category: Optional[str] = "Hardware"
+    qty: int = 1
+    unitPrice: float = 0.0
+    discountPct: float = 0.0
+    categoryMaxDiscountPct: Optional[float] = None
+    lineLimitPct: Optional[float] = None
+
+
+class RiskCalcRequest(BaseModel):
+    quotationId: str
+    customerId: Optional[str] = "cust-1"
+    customerTier: Optional[str] = "Silver"
+    salesRepId: Optional[str] = "rep-1"
+    lines: list[RiskCalcLine] = []
+
+
+@gateway.post("/risk-score/calculate")
+@gateway.post("/api/risk-score/calculate")
+def calculate_risk_score(req: RiskCalcRequest):
+    from datetime import datetime, timezone
+
+    tier = req.customerTier if req.customerTier in ("Bronze", "Silver", "Gold") else "Silver"
+    q_lines = []
+    for idx, l in enumerate(req.lines):
+        cat = l.category if l.category in ("Hardware", "Services", "Subscriptions") else "Hardware"
+        limit = l.categoryMaxDiscountPct if l.categoryMaxDiscountPct is not None else (l.lineLimitPct or 10.0)
+        q_lines.append(risk_models.QuotationLine(
+            lineId=l.lineId or f"line-{idx+1}",
+            productId=l.productId or f"prod-{idx+1}",
+            category=cat,
+            qty=l.qty,
+            unitPrice=l.unitPrice,
+            discountPct=l.discountPct,
+            categoryMaxDiscountPct=limit,
+        ))
+
+    event = risk_models.QuotationUpdatedEvent(
+        eventVersion=1,
+        quotationId=req.quotationId,
+        customerId=req.customerId or "cust-1",
+        customerTier=tier,
+        salesRepId=req.salesRepId or "rep-1",
+        lines=q_lines,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
+
+    result = risk_scoring.compute_blended_risk_score(event)
+    LATEST_SCORES[req.quotationId] = result
+    return result
+
+
 @gateway.get("/risk-score/{quotation_id}")
 @gateway.get("/api/risk-score/{quotation_id}")
 def get_risk_score(quotation_id: str):
@@ -116,6 +208,51 @@ def get_risk_score(quotation_id: str):
 # -----------------------------------------------------------------------------
 # 2. Upsell Engine Routes
 # -----------------------------------------------------------------------------
+class UpsellCandidateInput(BaseModel):
+    productId: str
+    productName: str
+    basePrice: float
+    marginPct: float = 20.0
+    isPromoted: bool = False
+    coPurchaseScore: float = 0.5
+
+
+class UpsellComputeRequest(BaseModel):
+    quotationId: str
+    cartProductIds: list[str] = []
+    candidates: list[UpsellCandidateInput] = []
+    minMarginPct: float = 0.0
+
+
+@gateway.post("/upsell-suggestions/compute")
+@gateway.post("/api/upsell-suggestions/compute")
+def compute_upsell(req: UpsellComputeRequest):
+    from datetime import datetime, timezone
+
+    event = upsell_models.UpsellSuggestionsRequestedEvent(
+        eventVersion=1,
+        quotationId=req.quotationId,
+        cartProductIds=req.cartProductIds,
+        candidates=[
+            upsell_models.UpsellCandidate(
+                productId=c.productId,
+                productName=c.productName,
+                basePrice=c.basePrice,
+                marginPct=c.marginPct,
+                isPromoted=c.isPromoted,
+                coPurchaseScore=c.coPurchaseScore,
+            )
+            for c in req.candidates
+        ],
+        minMarginPct=req.minMarginPct,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
+
+    result = upsell_ranking.compute_upsell_suggestions(event)
+    LATEST_SUGGESTIONS[req.quotationId] = result
+    return result
+
+
 @gateway.get("/upsell-suggestions/{quotation_id}")
 @gateway.get("/api/upsell-suggestions/{quotation_id}")
 def get_upsell_suggestions(quotation_id: str):

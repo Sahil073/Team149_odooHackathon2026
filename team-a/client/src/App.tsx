@@ -55,6 +55,7 @@ import {
   getSubscriptionPlans,
   createSubscriptionPlan as apiCreateSubscriptionPlan,
   getDealHealthFlags,
+  triggerDealHealthScan,
   getAuditLogs,
   toQuote,
   toApprovalItem,
@@ -373,6 +374,19 @@ function App() {
     }
   }
 
+  async function handleTriggerScan() {
+    try {
+      const res = await triggerDealHealthScan();
+      notifyPortal(res.message || 'Deal health scan completed.');
+      const flagsRes = await getDealHealthFlags();
+      if (flagsRes?.data) {
+        setDealHealthFlags(flagsRes.data.map(toDealHealthFlag));
+      }
+    } catch (err: any) {
+      notifyPortal(err.message || 'Deal health scan completed.');
+    }
+  }
+
   async function handleSaveQuotation(payload: any) {
     try {
       const res = await apiCreateQuotation({
@@ -652,6 +666,7 @@ function App() {
                 }
               }}
               onNotify={notifyPortal}
+              onTriggerScan={handleTriggerScan}
             />
           ) : screen === 'reports' ? (
             <ReportsPage onNotify={notifyPortal} />

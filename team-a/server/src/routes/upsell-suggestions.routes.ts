@@ -24,13 +24,45 @@ router.get(
                 throw new NotFoundError(`Quotation with id ${quotationId} not found`);
             }
 
-            // Attempt proxy to Team B if endpoint configured
-            if (env.SMART_LAYER_BASE_URL) {
+            const currentProductIds = quotation.lines.map((l: any) => l.productId);
+
+            const matchingRules = await prisma.upsellRule.findMany({
+                where: {
+                    baseProductId: { in: currentProductIds },
+                    // Do not suggest a product that is already in the cart
+                    suggestedProductId: { notIn: currentProductIds },
+                },
+                include: {
+                    suggestedProduct: true,
+                },
+                orderBy: [{ promoActive: 'desc' }, { minMarginPct: 'desc' }],
+                take: 6,
+            });
+
+            // Attempt proxy to Team B Smart Layer ranking engine if configured
+            if (env.SMART_LAYER_BASE_URL && matchingRules.length > 0) {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), env.SMART_LAYER_TIMEOUT_MS);
 
                 try {
-                    const response = await fetch(`${env.SMART_LAYER_BASE_URL}/upsell-suggestions/${quotationId}`, {
+                    const candidatesPayload = matchingRules.map((rule: any) => ({
+                        productId: rule.suggestedProduct.id,
+                        productName: rule.suggestedProduct.name,
+                        basePrice: Number(rule.suggestedProduct.price),
+                        marginPct: Number(rule.minMarginPct || 25),
+                        isPromoted: Boolean(rule.promoActive),
+                        coPurchaseScore: 0.75,
+                    }));
+
+                    const response = await fetch(`${env.SMART_LAYER_BASE_URL}/api/upsell-suggestions/compute`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            quotationId,
+                            cartProductIds: currentProductIds,
+                            candidates: candidatesPayload,
+                            minMarginPct: 10,
+                        }),
                         signal: controller.signal,
                     });
                     clearTimeout(timeoutId);
@@ -45,22 +77,6 @@ router.get(
                     // Fallback to internal rules
                 }
             }
-
-            // Internal fallback: Look up configured UpsellRules for products in this quotation
-            const currentProductIds = quotation.lines.map((l: any) => l.productId);
-
-            const matchingRules = await prisma.upsellRule.findMany({
-                where: {
-                    baseProductId: { in: currentProductIds },
-                    // Do not suggest a product that is already in the cart
-                    suggestedProductId: { notIn: currentProductIds },
-                },
-                include: {
-                    suggestedProduct: true,
-                },
-                orderBy: [{ promoActive: 'desc' }, { minMarginPct: 'desc' }],
-                take: 5,
-            });
 
             const currentCalculationLines = quotation.lines.map((l: any) => ({
                 qty: l.qty,

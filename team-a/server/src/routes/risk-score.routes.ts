@@ -47,7 +47,26 @@ router.get(
                 const timeoutId = setTimeout(() => controller.abort(), env.SMART_LAYER_TIMEOUT_MS);
 
                 try {
-                    const response = await fetch(`${env.SMART_LAYER_BASE_URL}/risk-score/${quotationId}`, {
+                    const linesPayload = quotation.lines.map((l: any) => ({
+                        lineId: l.id,
+                        productId: l.productId,
+                        category: l.product?.category === 'SERVICES' ? 'Services' : l.product?.category === 'SUBSCRIPTIONS' ? 'Subscriptions' : 'Hardware',
+                        qty: l.qty,
+                        unitPrice: Number(l.unitPrice),
+                        discountPct: l.discountPct,
+                        categoryMaxDiscountPct: l.lineLimitPct,
+                    }));
+
+                    const response = await fetch(`${env.SMART_LAYER_BASE_URL}/api/risk-score/calculate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            quotationId: quotation.id,
+                            customerId: quotation.customerId,
+                            customerTier: quotation.customer?.tier === 'GOLD' ? 'Gold' : quotation.customer?.tier === 'BRONZE' ? 'Bronze' : 'Silver',
+                            salesRepId: quotation.salesRepId,
+                            lines: linesPayload,
+                        }),
                         signal: controller.signal,
                     });
                     clearTimeout(timeoutId);

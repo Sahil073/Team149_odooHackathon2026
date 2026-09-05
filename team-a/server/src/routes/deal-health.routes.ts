@@ -72,6 +72,78 @@ router.get(
     }
 );
 
+// POST /api/deal-health-flags/scan — trigger immediate deal health scan
+router.post(
+    '/scan',
+    authenticateStaff,
+    requireRole('SALES_MANAGER', 'ADMIN'),
+    async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const stalled = await prisma.quotation.findMany({
+                where: {
+                    status: { in: ['DRAFT', 'PENDING_APPROVAL'] },
+                    updatedAt: { lt: sevenDaysAgo },
+                },
+            });
+
+            for (const q of stalled) {
+                const exists = await prisma.dealHealthFlag.findFirst({
+                    where: { quotationId: q.id, flagType: DealHealthFlagType.STALLED, resolved: false },
+                });
+                if (!exists) {
+                    await prisma.dealHealthFlag.create({
+                        data: {
+                            quotationId: q.id,
+                            flagType: DealHealthFlagType.STALLED,
+                            severity: DealHealthSeverity.MEDIUM,
+                            detail: `Quotation inactive for >7 days in ${q.status} state`,
+                            resolved: false,
+                        },
+                    });
+                }
+            }
+
+            const anomalyQuotes = await prisma.quotation.findMany({
+                where: { lines: { some: { discountPct: { gte: 20 } } } },
+            });
+            for (const q of anomalyQuotes) {
+                const exists = await prisma.dealHealthFlag.findFirst({
+                    where: { quotationId: q.id, flagType: DealHealthFlagType.DISCOUNT_ANOMALY, resolved: false },
+                });
+                if (!exists) {
+                    await prisma.dealHealthFlag.create({
+                        data: {
+                            quotationId: q.id,
+                            flagType: DealHealthFlagType.DISCOUNT_ANOMALY,
+                            severity: DealHealthSeverity.HIGH,
+                            detail: `Line discount exceeds 20% threshold`,
+                            resolved: false,
+                        },
+                    });
+                }
+            }
+
+            const updatedFlags = await prisma.dealHealthFlag.findMany({
+                where: { resolved: false },
+                include: {
+                    quotation: {
+                        include: {
+                            customer: { select: { id: true, name: true, tier: true } },
+                            salesRep: { select: { id: true, name: true, email: true } },
+                        },
+                    },
+                },
+                orderBy: [{ severity: 'desc' }, { detectedAt: 'desc' }],
+            });
+
+            res.json({ message: 'Deal health scan completed', data: updatedFlags });
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
 // PATCH /api/deal-health-flags/:id/resolve — resolve an anomaly flag
 router.patch(
     '/:id/resolve',
