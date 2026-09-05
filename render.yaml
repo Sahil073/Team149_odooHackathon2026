@@ -11,7 +11,7 @@ services:
     plan: free
     region: oregon
     rootDir: team-a/server
-    buildCommand: npm install && npx prisma db push && npm run build && npm run seed
+    buildCommand: npm install && npm run db:push && npm run build && npm run seed
     startCommand: npm start
     healthCheckPath: /health
     envVars:
