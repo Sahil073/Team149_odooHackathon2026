@@ -33,6 +33,13 @@ def get_deal_health_flags(severity: Optional[str] = Query(default=None)):
 
 
 @app.post("/api/deal-health-flags/{flag_id}/resolve")
-def resolve_flag(flag_id: int):
+def resolve_flag(flag_id: str):
     db.resolve_flag(flag_id)
     return {"status": "resolved", "flagId": flag_id}
+
+
+if __name__ == "__main__":
+    import os
+    import uvicorn
+    port = int(os.environ.get("PORT", 8003))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)

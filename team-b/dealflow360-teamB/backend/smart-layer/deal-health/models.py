@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Union
 
 
 class QuotationLine(BaseModel):
@@ -36,6 +37,7 @@ class DealHealthFlagEvent(BaseModel):
 
 class DealHealthFlagRecord(BaseModel):
     id: int
+    id: Union[str, int]
     quotationId: str
     flagType: Literal["stalled", "discount_anomaly", "delivery_slippage"]
     severity: Literal["low", "medium", "high"]

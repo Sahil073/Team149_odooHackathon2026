@@ -1,6 +1,15 @@
 import json
 import redis
+import sys
+from pathlib import Path
 from datetime import datetime, timezone
+
+# Ensure smart-layer root is in sys.path for shared module imports
+SMART_LAYER_DIR = Path(__file__).resolve().parents[1]
+if str(SMART_LAYER_DIR) not in sys.path:
+    sys.path.insert(0, str(SMART_LAYER_DIR))
+
+from shared.redis_client import get_redis_subscriber
 from models import QuotationUpdatedEvent
 from detection import check_discount_anomaly, run_all_checks
 import db
@@ -23,6 +32,7 @@ def start_listener():
     pubsub = r.pubsub()
     pubsub.subscribe(CHANNEL_QUOTATION_UPDATED)
 
+    pubsub = get_redis_subscriber(CHANNEL_QUOTATION_UPDATED)
     print(f"[deal-health] Subscribed to '{CHANNEL_QUOTATION_UPDATED}'. Waiting for events...")
 
     for message in pubsub.listen():
