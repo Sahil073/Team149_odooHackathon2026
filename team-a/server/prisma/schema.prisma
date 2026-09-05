@@ -1,0 +1,374 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ─────────────────────────────────────────────
+
+enum Role {
+  SALES_REP
+  SALES_MANAGER
+  FINANCE
+  ADMIN
+}
+
+enum CustomerTier {
+  BRONZE
+  SILVER
+  GOLD
+}
+
+enum ProductCategory {
+  HARDWARE
+  SERVICES
+  SUBSCRIPTIONS
+}
+
+enum QuotationStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  FULFILLED
+  CLOSED
+}
+
+// Per line, set FLAGGED when it breaches categoryMaxDiscountPct (ICD §3.1)
+enum QuotationLineStatus {
+  OK
+  FLAGGED
+}
+
+enum ApprovalStep {
+  SALES_MANAGER
+  FINANCE
+}
+
+enum ApprovalAction {
+  APPROVED
+  REJECTED
+  RETURNED
+}
+
+enum SubscriptionCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum InvoiceType {
+  ONE_TIME
+  RECURRING
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  VOID
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  UPI
+  OTHER
+}
+
+// Matches ICD §3.8 DealHealthFlagRaised payload exactly
+enum DealHealthFlagType {
+  STALLED
+  DISCOUNT_ANOMALY
+  DELIVERY_SLIPPAGE
+}
+
+enum DealHealthSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// ── Identity ──────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+
+  quotationsAsRep Quotation[] @relation("SalesRep")
+  approvals       Approval[]
+  auditLogs       AuditLog[]
+}
+
+model Customer {
+  id                String       @id @default(uuid())
+  name              String
+  email             String       @unique
+  tier              CustomerTier
+  // Separate credential from User — portal auth uses its own JWT secret (see env.ts)
+  portalPasswordHash String?
+  createdAt         DateTime     @default(now())
+
+  quotations Quotation[]
+}
+
+// ── Product / Pricing ─────────────────────────────────
+
+model Product {
+  id          String          @id @default(uuid())
+  name        String
+  category    ProductCategory
+  price       Decimal         @db.Decimal(10, 2)
+  unit        String
+  taxPct      Int
+  description String?
+
+  variants        ProductVariant[]
+  quotationLines  QuotationLine[]
+  stock           Stock[]
+  upsellAsBase    UpsellRule[]     @relation("BaseProduct")
+  upsellAsSuggest UpsellRule[]     @relation("SuggestedProduct")
+}
+
+model ProductVariant {
+  id          String  @id @default(uuid())
+  productId   String
+  attribute   String
+  value       String
+  extraPrice  Decimal @db.Decimal(10, 2)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model PriceList {
+  id           String       @id @default(uuid())
+  customerTier CustomerTier
+  currency     String
+  priceRule    String
+}
+
+// ── Discount Governance (Team A owns config; Team B reads, never writes) ─
+
+model DiscountTier {
+  id             String @id @default(uuid())
+  tierName       String @unique
+  maxDiscountPct Int
+}
+
+model CategoryDiscountLimit {
+  id             String          @id @default(uuid())
+  category       ProductCategory @unique
+  maxDiscountPct Int
+}
+
+model ApprovalChainRule {
+  id                String @id @default(uuid())
+  discountRangeMin  Int
+  discountRangeMax  Int
+  requiresManager   Boolean
+  requiresFinance   Boolean
+}
+
+// ── Quotation ─────────────────────────────────────────
+
+model Quotation {
+  id         String          @id @default(uuid())
+  customerId String
+  salesRepId String
+  status     QuotationStatus @default(DRAFT)
+  // Written only on RiskScoreComputed event from Team B — never set directly by Team A logic
+  blendedRiskScore Float?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  customer   Customer          @relation(fields: [customerId], references: [id])
+  salesRep   User              @relation("SalesRep", fields: [salesRepId], references: [id])
+  lines      QuotationLine[]
+  approvals  Approval[]
+  splits     FulfillmentSplit[]
+  subscription Subscription?
+  invoices   Invoice[]
+  healthFlags DealHealthFlag[]
+
+  @@index([customerId])
+  @@index([salesRepId])
+}
+
+model QuotationLine {
+  id            String              @id @default(uuid())
+  quotationId   String
+  productId     String
+  qty           Int
+  unitPrice     Decimal             @db.Decimal(10, 2)
+  discountPct   Int // whole number, e.g. 12 means 12% — never a fraction (ICD §7)
+  lineLimitPct  Int
+  status        QuotationLineStatus @default(OK)
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@index([quotationId])
+}
+
+// ── Approval ──────────────────────────────────────────
+
+model Approval {
+  id          String         @id @default(uuid())
+  quotationId String
+  step        ApprovalStep
+  reviewerId  String
+  action      ApprovalAction
+  note        String?
+  timestamp   DateTime       @default(now())
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  reviewer  User      @relation(fields: [reviewerId], references: [id])
+
+  @@index([quotationId])
+}
+
+// ── Warehouse / Stock / Fulfillment ──────────────────
+
+model Warehouse {
+  id       String @id @default(uuid())
+  name     String
+  location String
+
+  stock  Stock[]
+  splits FulfillmentSplit[]
+}
+
+model Stock {
+  id           String @id @default(uuid())
+  warehouseId  String
+  productId    String
+  qtyAvailable Int
+  qtyReserved  Int
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@unique([warehouseId, productId])
+}
+
+model FulfillmentSplit {
+  id          String  @id @default(uuid())
+  quotationId String
+  warehouseId String
+  qtyFulfilled Int
+  shipmentCost Decimal @db.Decimal(10, 2)
+  // "core-rule" (Team A basic split) or "smart-optimizer" (Team B, post-MVP) — ICD §3.5
+  generatedBy String  @default("core-rule")
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@index([quotationId])
+}
+
+// ── Billing ───────────────────────────────────────────
+
+model SubscriptionPlan {
+  id            String            @id @default(uuid())
+  name          String
+  cycle         SubscriptionCycle
+  prorationRule String
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id            String             @id @default(uuid())
+  quotationId   String             @unique
+  planId        String
+  status        SubscriptionStatus @default(ACTIVE)
+  nextBillDate  DateTime
+
+  quotation Quotation        @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id])
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  quotationId String
+  type        InvoiceType
+  amount      Decimal       @db.Decimal(10, 2)
+  status      InvoiceStatus @default(PENDING)
+  dueDate     DateTime
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  payments  Payment[]
+
+  @@index([quotationId])
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  invoiceId String
+  amount    Decimal       @db.Decimal(10, 2)
+  method    PaymentMethod
+  paidAt    DateTime      @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+// ── Smart Layer output tables Team A owns ────────────
+
+model DealHealthFlag {
+  id          String             @id @default(uuid())
+  quotationId String
+  flagType    DealHealthFlagType
+  severity    DealHealthSeverity
+  detail      String
+  detectedAt  DateTime           @default(now())
+  resolved    Boolean            @default(false)
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+}
+
+// Config only — Team B's upsell-engine reads this, never writes
+model UpsellRule {
+  id                  String  @id @default(uuid())
+  baseProductId       String
+  suggestedProductId  String
+  minMarginPct        Int
+  promoActive         Boolean @default(false)
+
+  baseProduct      Product @relation("BaseProduct", fields: [baseProductId], references: [id])
+  suggestedProduct Product @relation("SuggestedProduct", fields: [suggestedProductId], references: [id])
+
+  @@unique([baseProductId, suggestedProductId])
+}
+
+// ── Audit ─────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  entityType String
+  entityId   String
+  userId     String?
+  action     String
+  reason     String?
+  timestamp  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+}
