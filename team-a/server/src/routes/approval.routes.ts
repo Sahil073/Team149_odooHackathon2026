@@ -97,7 +97,7 @@ router.post(
             const payload: QuotationApprovedPayload = {
                 eventVersion: 1,
                 quotationId: quotation.id,
-                approvedLines: quotation.lines.map((l) => ({
+                approvedLines: quotation.lines.map((l: any) => ({
                     productId: l.productId,
                     qtyOrdered: l.qty,
                 })),

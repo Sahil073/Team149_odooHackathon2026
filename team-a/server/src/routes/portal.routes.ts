@@ -28,6 +28,8 @@ function toEventCategory(category: ProductCategory): 'Hardware' | 'Services' | '
             return 'Services';
         case ProductCategory.SUBSCRIPTIONS:
             return 'Subscriptions';
+        default:
+            return 'Hardware';
     }
 }
 

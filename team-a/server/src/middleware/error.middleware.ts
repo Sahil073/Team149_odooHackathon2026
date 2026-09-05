@@ -19,11 +19,12 @@ export function errorMiddleware(err: unknown, req: Request, res: Response, _next
     }
 
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
-        if (err.code === 'P2002') {
+        const prismaErr = err as Prisma.PrismaClientKnownRequestError;
+        if (prismaErr.code === 'P2002') {
             res.status(409).json({ error: 'A record with this value already exists' });
             return;
         }
-        if (err.code === 'P2025') {
+        if (prismaErr.code === 'P2025') {
             res.status(404).json({ error: 'Record not found' });
             return;
         }

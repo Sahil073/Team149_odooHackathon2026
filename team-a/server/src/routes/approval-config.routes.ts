@@ -61,7 +61,7 @@ router.put(
         try {
             const { rules } = req.body;
 
-            await prisma.$transaction(async (tx) => {
+            await prisma.$transaction(async (tx: any) => {
                 await tx.approvalChainRule.deleteMany();
                 await tx.approvalChainRule.createMany({ data: rules });
             });

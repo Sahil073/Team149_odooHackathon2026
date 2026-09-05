@@ -32,7 +32,7 @@ if (isDevelopment) {
 
     // Surface slow queries early — useful once the fulfillment split logic starts
     // doing joins across Stock/Warehouse/QuotationLine.
-    // @ts-expect-error - the 'query' event only exists on the client when log includes it
+    // @ts-ignore - the 'query' event only exists on the client when log includes it
     prisma.$on('query', (e: { query: string; duration: number }) => {
         if (e.duration > 200) {
             console.warn(`[prisma] slow query (${e.duration}ms): ${e.query}`);

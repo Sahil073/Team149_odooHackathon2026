@@ -6,14 +6,14 @@ function createClient(name: string): RedisClient {
         // Don't auto-connect on construction — connectRedis() below controls exactly
         // when connections open, so server.ts can await them before accepting traffic.
         lazyConnect: true,
-        retryStrategy(times) {
+        retryStrategy(times: number) {
             return Math.min(times * 200, 5000);
         },
         maxRetriesPerRequest: 3,
     });
 
     client.on('connect', () => console.log(`✅ Redis (${name}) connected`));
-    client.on('error', (err) => console.error(`❌ Redis (${name}) error:`, err.message));
+    client.on('error', (err: Error) => console.error(`❌ Redis (${name}) error:`, err.message));
     client.on('close', () => console.warn(`🔌 Redis (${name}) connection closed`));
 
     return client;

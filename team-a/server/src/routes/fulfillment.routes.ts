@@ -44,7 +44,7 @@ router.get(
 
             // Only HARDWARE requires warehouse physical fulfillment
             const hardwareLines = quotation.lines.filter(
-                (line) => line.product.category === ProductCategory.HARDWARE
+                (line: any) => line.product.category === ProductCategory.HARDWARE
             );
 
             if (hardwareLines.length === 0) {
@@ -68,15 +68,15 @@ router.get(
                 let remainingQty = line.qty;
 
                 // Sort warehouses with highest available stock for this product first
-                const sortedWarehouses = [...warehouses].sort((a, b) => {
-                    const stockA = a.stock.find((s) => s.productId === line.productId)?.qtyAvailable ?? 0;
-                    const stockB = b.stock.find((s) => s.productId === line.productId)?.qtyAvailable ?? 0;
+                const sortedWarehouses = [...warehouses].sort((a: any, b: any) => {
+                    const stockA = a.stock.find((s: any) => s.productId === line.productId)?.qtyAvailable ?? 0;
+                    const stockB = b.stock.find((s: any) => s.productId === line.productId)?.qtyAvailable ?? 0;
                     return stockB - stockA;
                 });
 
                 for (const wh of sortedWarehouses) {
                     if (remainingQty <= 0) break;
-                    const stock = wh.stock.find((s) => s.productId === line.productId);
+                    const stock = wh.stock.find((s: any) => s.productId === line.productId);
                     const available = stock ? stock.qtyAvailable : 0;
 
                     if (available > 0) {
@@ -176,7 +176,7 @@ router.post(
             }
 
             // Execute transaction: save splits and update quotation status
-            await prisma.$transaction(async (tx) => {
+            await prisma.$transaction(async (tx: any) => {
                 await tx.fulfillmentSplit.deleteMany({ where: { quotationId } });
 
                 for (const split of splits) {

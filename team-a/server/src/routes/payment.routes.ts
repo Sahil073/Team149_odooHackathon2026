@@ -46,7 +46,7 @@ router.post(
             });
 
             // Calculate total paid including the new payment
-            const totalPaid = invoice.payments.reduce((sum, p) => sum + Number(p.amount), 0) + amount;
+            const totalPaid = invoice.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0) + amount;
 
             // If fully settled, update status to PAID
             let updatedInvoice = invoice;
