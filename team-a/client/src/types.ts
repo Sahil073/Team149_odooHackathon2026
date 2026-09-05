@@ -30,6 +30,14 @@ export type QuoteStatus =
   | 'Negotiation'
   | 'Confirmed';
 
+export const statusColors: Record<QuoteStatus, string> = {
+  Draft: 'status-blue',
+  'Pending approval': 'status-amber',
+  Approved: 'status-violet',
+  Negotiation: 'status-orange',
+  Confirmed: 'status-green',
+};
+
 export type QuotedProduct = {
   id: string;
   name: string;
@@ -152,3 +160,58 @@ export type Invoice = {
   dueDate: string;
   source: string;
 };
+
+export type Customer = {
+  id: string;
+  name: string;
+  email: string;
+  tier: 'BRONZE' | 'SILVER' | 'GOLD';
+};
+
+export type Warehouse = {
+  id: string;
+  name: string;
+  location: string;
+  _count?: { stock: number };
+};
+
+export type DealHealthFlagItem = {
+  id: string;
+  deal: string;
+  quotationId: string;
+  issue: string;
+  date: string;
+  tone: 'red' | 'orange' | 'blue';
+  severity: string;
+  resolved: boolean;
+};
+
+export type AuditLogItem = {
+  id: string;
+  user: string;
+  entity: string;
+  action: string;
+  reason: string;
+  timestamp: string;
+};
+
+export type DiscountConfig = {
+  discountTiers: Array<{ id?: string; tierName: string; maxDiscountPct: number }>;
+  categoryLimits: Array<{ id?: string; category: string; maxDiscountPct: number }>;
+};
+
+export type ApprovalRule = {
+  id?: string;
+  discountRangeMin: number;
+  discountRangeMax: number;
+  requiresManager: boolean;
+  requiresFinance: boolean;
+};
+
+export type SubscriptionPlanItem = {
+  id: string;
+  name: string;
+  cycle: string;
+  prorationRule?: string;
+};
+

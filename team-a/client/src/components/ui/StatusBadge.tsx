@@ -1,5 +1,4 @@
-import type { QuoteStatus } from '../../types';
-import { statusColors } from '../../data/demoData';
+import { type QuoteStatus, statusColors } from '../../types';
 
 type StatusBadgeProps = {
   status: QuoteStatus;
