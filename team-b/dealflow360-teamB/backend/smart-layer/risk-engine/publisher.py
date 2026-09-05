@@ -20,6 +20,15 @@ WHY THIS IS A SEPARATE FILE FROM listener.py:
 
 import json
 import redis
+import sys
+from pathlib import Path
+
+# Ensure smart-layer root is in sys.path for shared module imports
+SMART_LAYER_DIR = Path(__file__).resolve().parents[1]
+if str(SMART_LAYER_DIR) not in sys.path:
+    sys.path.insert(0, str(SMART_LAYER_DIR))
+
+from shared.redis_client import publish_event as shared_publish
 from models import RiskScoreComputedEvent
 
 REDIS_HOST = "localhost"
@@ -49,5 +58,6 @@ def publish_risk_score_computed(result: RiskScoreComputedEvent) -> None:
     client = _get_client()
     payload = result.model_dump_json()
     client.publish(CHANNEL_RISK_SCORE_COMPUTED, payload)
+    shared_publish(CHANNEL_RISK_SCORE_COMPUTED, result)
     print(f"[risk-engine] Published RiskScoreComputed for quotationId={result.quotationId} "
           f"(requiresApproval={result.requiresApproval}, requiresFinance={result.requiresFinance})")

@@ -78,3 +78,10 @@ def get_risk_score(quotation_id: str):
         reason="No score computed yet for this quotation.",
         computedAt=datetime.now(timezone.utc).isoformat(),
     )
+
+
+if __name__ == "__main__":
+    import os
+    import uvicorn
+    port = int(os.environ.get("PORT", 8001))
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)

@@ -18,6 +18,15 @@ WHY WE CACHE HERE INSTEAD OF RECOMPUTING ON EVERY REST REQUEST:
 
 import json
 import redis
+import sys
+from pathlib import Path
+
+# Ensure smart-layer root is in sys.path for shared module imports
+SMART_LAYER_DIR = Path(__file__).resolve().parents[1]
+if str(SMART_LAYER_DIR) not in sys.path:
+    sys.path.insert(0, str(SMART_LAYER_DIR))
+
+from shared.redis_client import get_redis_subscriber
 from models import QuotationUpdatedEvent
 from scoring import compute_blended_risk_score
 from publisher import publish_risk_score_computed
@@ -38,6 +47,7 @@ def start_listener(cache: dict):
     r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
     pubsub = r.pubsub()
     pubsub.subscribe(CHANNEL_QUOTATION_UPDATED)
+    pubsub = get_redis_subscriber(CHANNEL_QUOTATION_UPDATED)
 
     print(f"[risk-engine] Subscribed to '{CHANNEL_QUOTATION_UPDATED}'. Waiting for events...")
 
