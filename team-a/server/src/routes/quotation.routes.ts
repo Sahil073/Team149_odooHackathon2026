@@ -238,8 +238,8 @@ router.patch(
                 throw new NotFoundError(`Quotation with id ${quotationId} not found`);
             }
 
-            if (quotation.status === QuotationStatus.FULFILLED || quotation.status === QuotationStatus.CLOSED) {
-                throw new BadRequestError('Cannot modify lines of a fulfilled or closed quotation');
+            if (quotation.status === QuotationStatus.CLOSED) {
+                throw new BadRequestError('Cannot modify lines of a closed quotation');
             }
 
             // Remove old lines and re-create updated lines
@@ -269,6 +269,14 @@ router.patch(
                     include: { product: true },
                 });
                 newLines.push(created);
+            }
+
+            const hasFlagged = newLines.some((l) => l.status === QuotationLineStatus.FLAGGED || l.discountPct > 10);
+            if (hasFlagged) {
+                await prisma.quotation.update({
+                    where: { id: quotationId },
+                    data: { status: QuotationStatus.PENDING_APPROVAL },
+                });
             }
 
             // Publish ICD §3.1 QuotationUpdated

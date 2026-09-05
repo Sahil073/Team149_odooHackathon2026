@@ -10,8 +10,12 @@ const router = Router();
 
 const recordPaymentSchema = z.object({
     invoiceId: z.string().min(1, 'invoiceId is required'),
-    amount: z.number().positive('Payment amount must be greater than 0'),
-    method: z.nativeEnum(PaymentMethod).default(PaymentMethod.BANK_TRANSFER),
+    amount: z.coerce.number().positive('Payment amount must be greater than 0'),
+    method: z
+        .enum(['CARD', 'CREDIT_CARD', 'BANK_TRANSFER', 'UPI', 'OTHER'])
+        .transform((val) => (val === 'CREDIT_CARD' ? PaymentMethod.CARD : (val as PaymentMethod)))
+        .default(PaymentMethod.BANK_TRANSFER),
+    reference: z.string().optional(),
 });
 
 // POST /api/payments — record payment and update invoice status

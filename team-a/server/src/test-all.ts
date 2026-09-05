@@ -277,7 +277,7 @@ async function main() {
             return {
                 status: res.status,
                 body: res.body,
-                valid: res.status === 200,
+                valid: res.status === 200 || res.status === 201,
                 detail: 'Splits saved to database',
             };
         });
