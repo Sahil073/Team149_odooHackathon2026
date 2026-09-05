@@ -10,11 +10,9 @@ from typing import Optional, Union
 import redis
 from pydantic import BaseModel
 
-_clients: dict[tuple[str, int], redis.Redis] = {}
 _clients: dict[str, redis.Redis] = {}
 
 
-def get_client(host: str = None, port: int = None) -> redis.Redis:
 def get_client(
     url: Optional[str] = None,
     host: Optional[str] = None,
@@ -37,11 +35,9 @@ def get_client(
 
     host = host or os.environ.get("REDIS_HOST", "localhost")
     port = port or int(os.environ.get("REDIS_PORT", 6379))
-    key = (host, port)
     key = f"{host}:{port}"
 
     if key not in _clients:
-        _clients[key] = redis.Redis(host=host, port=port, decode_responses=True)
         _clients[key] = redis.Redis(
             host=host,
             port=port,

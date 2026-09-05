@@ -3,9 +3,6 @@ event_envelope.py — Standard event enveloper and validator for DealFlow360.
 """
 
 import json
-from typing import Callable, Type
-from pydantic import BaseModel
-from redis_client import get_client
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Callable, Optional, Type, TypeVar, Union
@@ -19,7 +16,6 @@ except ImportError:
     except ImportError:
         from redis_client import get_client
 
-def publish_event(channel: str, event: BaseModel, log_prefix: str = "") -> None:
 
 def now_utc_iso() -> str:
     """Returns the current UTC timestamp formatted as ISO-8601 string."""
@@ -76,11 +72,12 @@ def deserialize_event(data: Union[str, bytes, dict], model_cls: Type[T]) -> T:
 def publish_event(channel: str, event: Union[BaseModel, dict], log_prefix: str = "") -> None:
     """Publishes a model or dictionary payload to Redis channel."""
     client = get_client()
-    payload = event.model_dump_json()
     if isinstance(event, BaseModel):
         payload = event.model_dump_json()
-    else:
+    elif isinstance(event, dict):
         payload = json.dumps(event)
+    else:
+        payload = str(event)
 
     client.publish(channel, payload)
     if log_prefix:
@@ -90,7 +87,6 @@ def publish_event(channel: str, event: Union[BaseModel, dict], log_prefix: str =
 def listen(
     channel: str,
     event_model: Type[BaseModel],
-    on_event: Callable[[BaseModel], None],
     on_event: Callable[[Any], None],
     log_prefix: str = "",
 ) -> None:
@@ -118,4 +114,3 @@ def listen(
         except Exception as e:
             if log_prefix:
                 print(f"{log_prefix} ERROR: handler failed: {e}")
-

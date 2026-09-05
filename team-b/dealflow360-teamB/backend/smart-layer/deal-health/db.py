@@ -8,13 +8,10 @@ Supports dual-mode execution:
 
 import os
 import sqlite3
-import os
 import threading
-from typing import List, Optional
 from typing import List, Optional, Union
 from models import QuoteState, DealHealthFlagEvent, DealHealthFlagRecord
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "deal_health.db")
 DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("SUPABASE_DB_URL")
 SQLITE_PATH = os.path.join(os.path.dirname(__file__), "deal_health.db")
 _lock = threading.Lock()
@@ -29,14 +26,11 @@ if DATABASE_URL:
         print("[deal-health.db] psycopg2 not installed; falling back to SQLite.")
         _use_postgres = False
 
-def get_connection():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 
 def _get_pg_connection():
     import psycopg2
     import psycopg2.extras
-    conn = psycopg2.connect(DATABASE_URL)
-    return conn
+    return psycopg2.connect(DATABASE_URL)
 
 
 def _get_sqlite_connection():
@@ -48,7 +42,6 @@ def _get_sqlite_connection():
 def init_db():
     global _use_postgres
     with _lock:
-        conn = get_connection()
         if _use_postgres and DATABASE_URL:
             try:
                 conn = _get_pg_connection()
@@ -122,35 +115,6 @@ def upsert_quote_state(event) -> QuoteState:
     avg_discount = sum(l.discountPct for l in lines) / len(lines) if lines else 0.0
 
     with _lock:
-        conn = get_connection()
-        conn.execute(
-            """
-            INSERT INTO quote_state (
-                quotation_id, sales_rep_id, customer_id, avg_discount_pct,
-                last_updated_at, status, promised_delivery_date, actual_ship_date
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(quotation_id) DO UPDATE SET
-                sales_rep_id=excluded.sales_rep_id,
-                customer_id=excluded.customer_id,
-                avg_discount_pct=excluded.avg_discount_pct,
-                last_updated_at=excluded.last_updated_at,
-                status=excluded.status,
-                promised_delivery_date=excluded.promised_delivery_date,
-                actual_ship_date=excluded.actual_ship_date
-            """,
-            (
-                event.quotationId,
-                event.salesRepId,
-                event.customerId,
-                avg_discount,
-                event.timestamp,
-                event.status,
-                event.promisedDeliveryDate,
-                event.actualShipDate,
-            ),
-        )
-        conn.commit()
-        conn.close()
         if _use_postgres:
             conn = _get_pg_connection()
             with conn.cursor() as cur:
@@ -214,9 +178,6 @@ def upsert_quote_state(event) -> QuoteState:
             conn.close()
 
     return QuoteState(
-        quotationId=event.quotationId,
-        salesRepId=event.salesRepId,
-        customerId=event.customerId,
         quotationId=str(event.quotationId),
         salesRepId=str(event.salesRepId),
         customerId=str(event.customerId),
@@ -229,9 +190,6 @@ def upsert_quote_state(event) -> QuoteState:
 
 
 def get_all_quote_states() -> List[QuoteState]:
-    conn = get_connection()
-    rows = conn.execute("SELECT * FROM quote_state").fetchall()
-    conn.close()
     if _use_postgres:
         import psycopg2.extras
         conn = _get_pg_connection()
@@ -246,19 +204,12 @@ def get_all_quote_states() -> List[QuoteState]:
 
     return [
         QuoteState(
-            quotationId=row["quotation_id"],
-            salesRepId=row["sales_rep_id"],
-            customerId=row["customer_id"],
-            avgDiscountPct=row["avg_discount_pct"],
-            lastUpdatedAt=row["last_updated_at"],
             quotationId=str(row["quotation_id"]),
             salesRepId=str(row["sales_rep_id"]),
             customerId=str(row["customer_id"]),
             avgDiscountPct=float(row["avg_discount_pct"]),
             lastUpdatedAt=str(row["last_updated_at"]),
             status=row["status"],
-            promisedDeliveryDate=row["promised_delivery_date"],
-            actualShipDate=row["actual_ship_date"],
             promisedDeliveryDate=str(row["promised_delivery_date"]) if row["promised_delivery_date"] else None,
             actualShipDate=str(row["actual_ship_date"]) if row["actual_ship_date"] else None,
         )
@@ -267,16 +218,6 @@ def get_all_quote_states() -> List[QuoteState]:
 
 
 def get_rep_baseline_avg_discount(sales_rep_id: str, exclude_quotation_id: str) -> Optional[float]:
-    conn = get_connection()
-    row = conn.execute(
-        """
-        SELECT AVG(avg_discount_pct) AS baseline, COUNT(*) AS n
-        FROM quote_state
-        WHERE sales_rep_id = ? AND quotation_id != ?
-        """,
-        (sales_rep_id, exclude_quotation_id),
-    ).fetchone()
-    conn.close()
     if _use_postgres:
         conn = _get_pg_connection()
         with conn.cursor() as cur:
@@ -308,10 +249,7 @@ def get_rep_baseline_avg_discount(sales_rep_id: str, exclude_quotation_id: str) 
             return None
         return float(row["baseline"])
 
-    if row is None or row["n"] < 2 or row["baseline"] is None:
-        return None
 
-    return row["baseline"]
 def insert_flag(flag: DealHealthFlagEvent) -> Union[str, int]:
     with _lock:
         if _use_postgres:
@@ -344,10 +282,6 @@ def insert_flag(flag: DealHealthFlagEvent) -> Union[str, int]:
             return flag_id
 
 
-def insert_flag(flag: DealHealthFlagEvent) -> int:
-    with _lock:
-        conn = get_connection()
-        cursor = conn.execute(
 def has_open_flag(quotation_id: str, flag_type: str) -> bool:
     if _use_postgres:
         conn = _get_pg_connection()
@@ -367,46 +301,17 @@ def has_open_flag(quotation_id: str, flag_type: str) -> bool:
         conn = _get_sqlite_connection()
         row = conn.execute(
             """
-            INSERT INTO deal_health_flags (quotation_id, flag_type, severity, detail, detected_at, resolved)
-            VALUES (?, ?, ?, ?, ?, 0)
             SELECT 1 FROM deal_health_flags
             WHERE quotation_id = ? AND flag_type = ? AND resolved = 0
             LIMIT 1
             """,
-            (flag.quotationId, flag.flagType, flag.severity, flag.detail, flag.detectedAt),
-        )
-        conn.commit()
-        flag_id = cursor.lastrowid
             (quotation_id, flag_type),
         ).fetchone()
         conn.close()
         return row is not None
 
-    return flag_id
-
-
-def has_open_flag(quotation_id: str, flag_type: str) -> bool:
-    conn = get_connection()
-    row = conn.execute(
-        """
-        SELECT 1 FROM deal_health_flags
-        WHERE quotation_id = ? AND flag_type = ? AND resolved = 0
-        LIMIT 1
-        """,
-        (quotation_id, flag_type),
-    ).fetchone()
-    conn.close()
-    return row is not None
-
 
 def get_open_flags(severity: Optional[str] = None) -> List[DealHealthFlagRecord]:
-    conn = get_connection()
-
-    if severity:
-        rows = conn.execute(
-            "SELECT * FROM deal_health_flags WHERE resolved = 0 AND severity = ? ORDER BY detected_at DESC",
-            (severity,),
-        ).fetchall()
     if _use_postgres:
         import psycopg2.extras
         conn = _get_pg_connection()
@@ -423,9 +328,6 @@ def get_open_flags(severity: Optional[str] = None) -> List[DealHealthFlagRecord]
             rows = cur.fetchall()
         conn.close()
     else:
-        rows = conn.execute(
-            "SELECT * FROM deal_health_flags WHERE resolved = 0 ORDER BY detected_at DESC"
-        ).fetchall()
         conn = _get_sqlite_connection()
         if severity:
             rows = conn.execute(
@@ -438,18 +340,13 @@ def get_open_flags(severity: Optional[str] = None) -> List[DealHealthFlagRecord]
             ).fetchall()
         conn.close()
 
-    conn.close()
-
     return [
         DealHealthFlagRecord(
-            id=row["id"],
-            quotationId=row["quotation_id"],
             id=str(row["id"]) if _use_postgres else row["id"],
             quotationId=str(row["quotation_id"]),
             flagType=row["flag_type"],
             severity=row["severity"],
             detail=row["detail"],
-            detectedAt=row["detected_at"],
             detectedAt=str(row["detected_at"]),
             resolved=bool(row["resolved"]),
         )
@@ -457,13 +354,8 @@ def get_open_flags(severity: Optional[str] = None) -> List[DealHealthFlagRecord]
     ]
 
 
-def resolve_flag(flag_id: int) -> None:
 def resolve_flag(flag_id: Union[str, int]) -> None:
     with _lock:
-        conn = get_connection()
-        conn.execute("UPDATE deal_health_flags SET resolved = 1 WHERE id = ?", (flag_id,))
-        conn.commit()
-        conn.close()
         if _use_postgres:
             conn = _get_pg_connection()
             with conn.cursor() as cur:
