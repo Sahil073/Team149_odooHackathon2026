@@ -767,3 +767,31 @@ export function toAuditLog(log: ApiAuditLog): AuditLogItem {
     timestamp: formatTimeAgo(log.createdAt),
   };
 }
+
+// ── AI Deal Win Predictor (ML) ─────────────────────────────────────────────
+
+export type WinPredictionPayload = {
+  customerTier?: string;
+  totalRevenue?: number;
+  avgDiscountPct?: number;
+  itemCount?: number;
+  riskScore?: number;
+};
+
+export type WinPredictionResponse = {
+  winProbability: number;
+  status: 'HIGH' | 'MODERATE' | 'AT_RISK' | string;
+  confidence?: number;
+  keyDriver?: string;
+  recommendedDiscountPct?: number;
+  modelType?: string;
+  modelVersion?: string;
+  fallbackActive?: boolean;
+};
+
+export function predictWinProbability(payload: WinPredictionPayload): Promise<WinPredictionResponse> {
+  return request<WinPredictionResponse>('/ai/win-probability', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}

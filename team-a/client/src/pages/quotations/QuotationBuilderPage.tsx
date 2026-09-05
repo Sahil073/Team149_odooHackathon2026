@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, ArrowRight, Check, Package, Plus, Save, Send, Sparkles, TrendingUp, X } from 'lucide-react';
 import { Notice } from '../../components/common/Notice';
+import { DealWinRateCard } from '../../components/ui/DealWinRateCard';
+import { predictWinProbability, type WinPredictionResponse } from '../../lib/api';
 import type { Customer, Product } from '../../types';
 
 type BuilderLine = {
@@ -46,6 +48,8 @@ export function QuotationBuilderPage({
     return [];
   });
   const [orderDiscount, setOrderDiscount] = useState(0);
+  const [aiWinData, setAiWinData] = useState<WinPredictionResponse | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const selectedCustomer = customersList.find((c) => c.id === selectedCustomerId) || customersList[0];
 
@@ -56,6 +60,36 @@ export function QuotationBuilderPage({
     8,
     32 - orderDiscount - lines.reduce((sum, line) => sum + line.discount, 0) / Math.max(lines.length, 1)
   );
+
+  const avgDiscountPct = lines.length
+    ? lines.reduce((sum, l) => sum + l.discount, 0) / lines.length + orderDiscount
+    : orderDiscount;
+
+  const fetchAiPrediction = useCallback(async () => {
+    try {
+      setAiLoading(true);
+      const tier = selectedCustomer?.tier || 'SILVER';
+      const result = await predictWinProbability({
+        customerTier: tier,
+        totalRevenue: total,
+        avgDiscountPct: Math.round(avgDiscountPct),
+        itemCount: lines.length,
+        riskScore: lines.some((l) => l.discount > 10) ? 0.45 : 0.12,
+      });
+      setAiWinData(result);
+    } catch (err) {
+      console.error('Failed to fetch win prediction:', err);
+    } finally {
+      setAiLoading(false);
+    }
+  }, [selectedCustomer?.tier, total, avgDiscountPct, lines.length]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchAiPrediction();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [fetchAiPrediction]);
 
   function addProduct(product: Product) {
     setLines((current) =>
@@ -275,6 +309,14 @@ export function QuotationBuilderPage({
               <span>One or more line discounts exceed standard tier limit. This quote will route for approval.</span>
             </div>
           )}
+
+          {/* AI Win-Rate ML Predictor Widget */}
+          <DealWinRateCard
+            data={aiWinData}
+            loading={aiLoading}
+            onRefresh={fetchAiPrediction}
+          />
+
           <div className="builder-actions">
             <button
               className="button"
