@@ -22,6 +22,7 @@ type DashboardProps = {
   onNavigate: (screen: Screen) => void;
   onOpenQuote: (quote: Quote) => void;
   onNewQuotation: () => void;
+  userName: string;
 };
 
 const stageDefs: Array<{ label: QuoteStatus; tone: string }> = [
