@@ -12,7 +12,7 @@ suggestions surface."
 from datetime import datetime, timezone
 from models import UpsellSuggestionsRequestedEvent, UpsellSuggestionsReadyEvent, RankedSuggestion
 
-PROMO_BOOST = 0.15  # rank bump for actively promoted items
+PROMO_BOOST = 0.15  
 
 
 def compute_upsell_suggestions(event: UpsellSuggestionsRequestedEvent) -> UpsellSuggestionsReadyEvent:

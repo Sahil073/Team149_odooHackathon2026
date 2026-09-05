@@ -1,11 +1,15 @@
-"""
-shared/redis_client.py — NOT YET BUILT.
+import os
+import redis
 
-Sprint: Sprint 3 (extract when 2nd engine needs Redis)
-Purpose: One shared Redis connection helper instead of copy-pasting connection code in every engine
+_clients: dict[tuple[str, int], redis.Redis] = {}
 
-This file is a placeholder so the full repo shape is visible from Sprint 1.
-Fill this in when its sprint starts.
-"""
 
-# TODO (Sprint 3 (extract when 2nd engine needs Redis)): implement one shared redis connection helper instead of copy-pasting connection code in every engine
+def get_client(host: str = None, port: int = None) -> redis.Redis:
+    host = host or os.environ.get("REDIS_HOST", "localhost")
+    port = port or int(os.environ.get("REDIS_PORT", 6379))
+    key = (host, port)
+
+    if key not in _clients:
+        _clients[key] = redis.Redis(host=host, port=port, decode_responses=True)
+
+    return _clients[key]

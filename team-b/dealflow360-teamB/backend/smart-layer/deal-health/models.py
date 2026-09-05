@@ -1,11 +1,55 @@
-"""
-models.py — NOT YET BUILT.
+from pydantic import BaseModel
+from typing import List, Literal, Optional
 
-Sprint: Sprint 5
-Purpose: Pydantic contract for DealHealthFlagRaised
 
-This file is a placeholder so the full repo shape is visible from Sprint 1.
-Fill this in when its sprint starts.
-"""
+class QuotationLine(BaseModel):
+    lineId: str
+    productId: str
+    category: Literal["Hardware", "Services", "Subscriptions"]
+    qty: int
+    unitPrice: float
+    discountPct: float
+    categoryMaxDiscountPct: float
 
-# TODO (Sprint 5): implement pydantic contract for dealhealthflagraised
+
+class QuotationUpdatedEvent(BaseModel):
+    eventVersion: int = 1
+    quotationId: str
+    customerId: str
+    customerTier: Literal["Bronze", "Silver", "Gold"]
+    salesRepId: str
+    lines: List[QuotationLine]
+    timestamp: str
+    status: Optional[str] = None
+    promisedDeliveryDate: Optional[str] = None
+    actualShipDate: Optional[str] = None
+
+
+class DealHealthFlagEvent(BaseModel):
+    eventVersion: int = 1
+    quotationId: str
+    flagType: Literal["stalled", "discount_anomaly", "delivery_slippage"]
+    severity: Literal["low", "medium", "high"]
+    detail: str
+    detectedAt: str
+
+
+class DealHealthFlagRecord(BaseModel):
+    id: int
+    quotationId: str
+    flagType: Literal["stalled", "discount_anomaly", "delivery_slippage"]
+    severity: Literal["low", "medium", "high"]
+    detail: str
+    detectedAt: str
+    resolved: bool
+
+
+class QuoteState(BaseModel):
+    quotationId: str
+    salesRepId: str
+    customerId: str
+    avgDiscountPct: float
+    lastUpdatedAt: str
+    status: Optional[str] = None
+    promisedDeliveryDate: Optional[str] = None
+    actualShipDate: Optional[str] = None

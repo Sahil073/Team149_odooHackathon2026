@@ -1,11 +1,43 @@
-"""
-shared/event_envelope.py — NOT YET BUILT.
+import json
+from typing import Callable, Type
+from pydantic import BaseModel
+from redis_client import get_client
 
-Sprint: Sprint 3 (extract when duplication appears)
-Purpose: Common eventVersion/timestamp helpers per ICD 7 data format standards
 
-This file is a placeholder so the full repo shape is visible from Sprint 1.
-Fill this in when its sprint starts.
-"""
+def publish_event(channel: str, event: BaseModel, log_prefix: str = "") -> None:
+    client = get_client()
+    payload = event.model_dump_json()
+    client.publish(channel, payload)
+    if log_prefix:
+        print(f"{log_prefix} Published on '{channel}': {payload}")
 
-# TODO (Sprint 3 (extract when duplication appears)): implement common eventversion/timestamp helpers per icd 7 data format standards
+
+def listen(
+    channel: str,
+    event_model: Type[BaseModel],
+    on_event: Callable[[BaseModel], None],
+    log_prefix: str = "",
+) -> None:
+    client = get_client()
+    pubsub = client.pubsub()
+    pubsub.subscribe(channel)
+
+    if log_prefix:
+        print(f"{log_prefix} Subscribed to '{channel}'. Waiting for events...")
+
+    for message in pubsub.listen():
+        if message["type"] != "message":
+            continue
+
+        try:
+            event = event_model(**json.loads(message["data"]))
+        except Exception as e:
+            if log_prefix:
+                print(f"{log_prefix} ERROR: failed to parse/validate event: {e}")
+            continue
+
+        try:
+            on_event(event)
+        except Exception as e:
+            if log_prefix:
+                print(f"{log_prefix} ERROR: handler failed: {e}")
