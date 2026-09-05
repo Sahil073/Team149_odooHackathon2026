@@ -21,6 +21,27 @@ const acceptSplitSchema = z.object({
     isManualOverride: z.boolean().default(false),
 });
 
+// GET /api/fulfillment — list all quotations requiring or undergoing fulfillment
+router.get('/', authenticateStaff, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const orders = await prisma.quotation.findMany({
+            where: {
+                status: { in: [QuotationStatus.APPROVED, QuotationStatus.FULFILLED] },
+            },
+            include: {
+                customer: true,
+                lines: { include: { product: true } },
+                splits: { include: { warehouse: true } },
+            },
+            orderBy: { updatedAt: 'desc' },
+        });
+
+        res.json({ data: orders });
+    } catch (err) {
+        next(err);
+    }
+});
+
 // GET /api/fulfillment/:quotationId/suggest-split — calculate warehouse split based on stock
 router.get(
     '/:quotationId/suggest-split',
