@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { authenticateStaff } from '../middleware/auth.middleware';
+import { calculateMarginDelta } from '../utils/calculations';
 import { NotFoundError } from '../utils/errors';
 
 const router = Router();
@@ -61,15 +62,30 @@ router.get(
                 take: 5,
             });
 
-            const suggestions = matchingRules.map((rule, idx) => ({
-                productId: rule.suggestedProduct.id,
-                productName: rule.suggestedProduct.name,
-                category: rule.suggestedProduct.category,
-                price: Number(rule.suggestedProduct.price),
-                marginDelta: rule.minMarginPct,
-                promotionActive: rule.promoActive,
-                rank: idx + 1,
+            const currentCalculationLines = quotation.lines.map((l) => ({
+                qty: l.qty,
+                unitPrice: Number(l.unitPrice),
+                discountPct: l.discountPct,
             }));
+
+            const suggestions = matchingRules.map((rule, idx) => {
+                const deltaResult = calculateMarginDelta(currentCalculationLines, {
+                    qty: 1,
+                    unitPrice: Number(rule.suggestedProduct.price),
+                    discountPct: 0,
+                    costPrice: Number(rule.suggestedProduct.price) * (1 - rule.minMarginPct / 100),
+                });
+
+                return {
+                    productId: rule.suggestedProduct.id,
+                    productName: rule.suggestedProduct.name,
+                    category: rule.suggestedProduct.category,
+                    price: Number(rule.suggestedProduct.price),
+                    marginDelta: deltaResult.marginDelta,
+                    promotionActive: rule.promoActive,
+                    rank: idx + 1,
+                };
+            });
 
             res.json({
                 quotationId,

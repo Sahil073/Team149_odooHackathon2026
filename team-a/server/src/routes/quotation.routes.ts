@@ -6,6 +6,7 @@ import { validate } from '../middleware/validation.middleware';
 import { authenticateStaff } from '../middleware/auth.middleware';
 import { publish } from '../events/event-publisher';
 import { QuotationUpdatedPayload } from '../events/event-types';
+import { calculateQuotationTotals } from '../utils/calculations';
 import { NotFoundError, BadRequestError } from '../utils/errors';
 
 const router = Router();
@@ -111,7 +112,18 @@ router.get('/:id', authenticateStaff, async (req: Request, res: Response, next: 
             throw new NotFoundError(`Quotation with id ${req.params.id} not found`);
         }
 
-        res.json({ data: quotation });
+        const totals = calculateQuotationTotals(
+            quotation.lines.map((l) => ({
+                lineId: l.id,
+                qty: l.qty,
+                unitPrice: Number(l.unitPrice),
+                discountPct: l.discountPct,
+                taxPct: l.product.taxPct,
+                categoryMaxDiscountPct: l.lineLimitPct,
+            }))
+        );
+
+        res.json({ data: { ...quotation, totals } });
     } catch (err) {
         next(err);
     }
@@ -284,7 +296,21 @@ router.patch(
                 include: { lines: { include: { product: true } } },
             });
 
-            res.json({ data: updatedQuotation, message: 'Quotation lines updated and event published' });
+            const totals = calculateQuotationTotals(
+                (updatedQuotation?.lines ?? []).map((l) => ({
+                    lineId: l.id,
+                    qty: l.qty,
+                    unitPrice: Number(l.unitPrice),
+                    discountPct: l.discountPct,
+                    taxPct: l.product.taxPct,
+                    categoryMaxDiscountPct: l.lineLimitPct,
+                }))
+            );
+
+            res.json({
+                data: { ...updatedQuotation, totals },
+                message: 'Quotation lines updated and event published',
+            });
         } catch (err) {
             next(err);
         }

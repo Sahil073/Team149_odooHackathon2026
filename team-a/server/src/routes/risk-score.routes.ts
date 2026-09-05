@@ -4,6 +4,7 @@ import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { authenticateStaff } from '../middleware/auth.middleware';
 import { subscribe } from '../events/event-subscriber';
+import { calculateBlendedRisk } from '../utils/calculations';
 import { NotFoundError } from '../utils/errors';
 
 const router = Router();
@@ -62,26 +63,25 @@ router.get(
                 }
             }
 
-            // ICD §5 Fallback: Calculate baseline risk internally (fail-safe)
-            const flaggedLines = quotation.lines
-                .filter((l) => l.status === QuotationLineStatus.FLAGGED || l.discountPct > l.lineLimitPct)
-                .map((l) => l.id);
-
-            const maxDiscountGiven = Math.max(0, ...quotation.lines.map((l) => l.discountPct));
-            const requiresApproval = flaggedLines.length > 0 || maxDiscountGiven > 5;
-            const requiresFinance = maxDiscountGiven > 15;
+            // ICD §5 Fallback: Calculate blended risk engine math internally (fail-safe)
+            const riskAssessment = calculateBlendedRisk(
+                quotation.lines.map((l) => ({
+                    lineId: l.id,
+                    qty: l.qty,
+                    unitPrice: Number(l.unitPrice),
+                    discountPct: l.discountPct,
+                    categoryMaxDiscountPct: l.lineLimitPct,
+                }))
+            );
 
             res.json({
                 eventVersion: 1,
                 quotationId: quotation.id,
-                blendedRiskScore: quotation.blendedRiskScore ?? (flaggedLines.length > 0 ? 0.75 : 0.1),
-                requiresApproval,
-                requiresFinance,
-                flaggedLines,
-                reason:
-                    flaggedLines.length > 0
-                        ? `${flaggedLines.length} line(s) exceed discount limits`
-                        : 'Within standard discount thresholds',
+                blendedRiskScore: quotation.blendedRiskScore ?? riskAssessment.blendedRiskScore,
+                requiresApproval: riskAssessment.requiresApproval,
+                requiresFinance: riskAssessment.requiresFinance,
+                flaggedLines: riskAssessment.flaggedLineIds,
+                reason: riskAssessment.reasons.length > 0 ? riskAssessment.reasons.join('; ') : 'Within standard limits',
                 fallbackActive: true,
                 computedAt: new Date().toISOString(),
             });
