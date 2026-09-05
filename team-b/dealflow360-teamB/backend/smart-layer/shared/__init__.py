@@ -1,7 +1,3 @@
-"""
-shared — Reusable utilities across DealFlow360 Smart Layer engines.
-"""
-
 from .event_envelope import (
     now_utc_iso,
     BaseEventEnvelope,
@@ -10,6 +6,7 @@ from .event_envelope import (
     is_valid_uuid,
     serialize_event,
     deserialize_event,
+    listen,
 )
 
 from .redis_client import (
@@ -28,10 +25,10 @@ __all__ = [
     "is_valid_uuid",
     "serialize_event",
     "deserialize_event",
+    "listen",
     "get_redis_client",
     "get_redis_subscriber",
     "publish_event",
     "check_redis_connection",
     "close_connections",
 ]
-
