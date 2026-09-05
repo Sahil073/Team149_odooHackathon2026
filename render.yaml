@@ -1,7 +1,6 @@
 databases:
   - name: dealflow360-db
     databaseName: dealflow360
-    user: postgres
     plan: free
     region: oregon
 
