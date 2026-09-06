@@ -101,12 +101,12 @@ export function AuthScreen({
               </div>
             )}
             <label className="field">
-              <span>Work email</span>
+              <span>{authMode === 'login' ? 'Username or Work email' : 'Work email'}</span>
               <input
                 name="email"
-                type="email"
-                placeholder="you@company.com"
-                autoComplete="email"
+                type={authMode === 'login' ? 'text' : 'email'}
+                placeholder={authMode === 'login' ? 'Username or you@company.com' : 'you@company.com'}
+                autoComplete={authMode === 'login' ? 'username' : 'email'}
                 required
               />
             </label>
@@ -119,7 +119,7 @@ export function AuthScreen({
                 autoComplete={
                   authMode === 'login' ? 'current-password' : 'new-password'
                 }
-                minLength={8}
+                minLength={6}
                 required
               />
             </label>

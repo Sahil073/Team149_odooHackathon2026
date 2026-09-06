@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Activity,
   BarChart3,
@@ -13,15 +14,16 @@ import {
   LayoutDashboard,
   PackageCheck,
   PanelLeftClose,
+  PanelLeftOpen,
   Settings2,
   ShieldCheck,
   SlidersHorizontal,
   Truck,
   Users,
   Warehouse,
-  X,
 } from 'lucide-react';
 import { BrandMark } from '../BrandMark';
+import { getInitials } from '../../lib/utils';
 import type { Screen } from '../../types';
 
 type SidebarProps = {
@@ -30,6 +32,7 @@ type SidebarProps = {
   onClose: () => void;
   onNavigate: (screen: Screen) => void;
   role: Role;
+  userName?: string;
 };
 
 import type { Role } from '../../types';
@@ -62,31 +65,47 @@ const roleLabels: Record<Role, string> = {
   admin: 'Admin workspace',
 };
 
-export function Sidebar({ screen, open, onClose, onNavigate, role }: SidebarProps) {
+export function Sidebar({ screen, open, onClose, onNavigate, role, userName = 'Team' }: SidebarProps) {
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('dealflow.sidebarCollapsed') === 'true';
+  });
+
+  const toggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('dealflow.sidebarCollapsed', String(next));
+      return next;
+    });
+  };
+
   const visibleNavItems = navItems.filter((item) => item.roles.includes(role));
   const visibleUpcomingItems = upcomingItems.filter((item) => item.roles.includes(role));
+  const displayName = role === 'customer' ? 'Acme Corporation' : userName;
+  const initials = getInitials(displayName);
+
   return (
     <>
       {open && <button className="sidebar-scrim" onClick={onClose} aria-label="Close navigation" />}
-      <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
+      <aside className={`sidebar ${open ? 'sidebar-open' : ''} ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
         <div className="sidebar-header">
-          <BrandMark />
-          <button className="icon-button sidebar-close" onClick={onClose} aria-label="Close navigation">
-            <X size={18} />
-          </button>
+          <BrandMark compact={isCollapsed} />
         </div>
 
-        <div className="workspace-switcher">
-          <span className="avatar avatar-indigo">AK</span>
-          <span className="workspace-info">
-            <strong>{role === 'customer' ? 'Acme Corporation' : 'Pawan Kumar'}</strong>
-            <small>{roleLabels[role]}</small>
-          </span>
-          <ChevronDown size={15} className="muted-icon" />
+        <div className="workspace-switcher" title={displayName}>
+          <span className="avatar avatar-indigo">{initials}</span>
+          {!isCollapsed && (
+            <>
+              <span className="workspace-info">
+                <strong>{displayName}</strong>
+                <small>{roleLabels[role]}</small>
+              </span>
+              <ChevronDown size={15} className="muted-icon" />
+            </>
+          )}
         </div>
 
         <nav className="sidebar-nav" aria-label="Main navigation">
-          <p className="nav-eyebrow">Workspace</p>
+          {!isCollapsed && <p className="nav-eyebrow">Workspace</p>}
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active =
@@ -97,46 +116,66 @@ export function Sidebar({ screen, open, onClose, onNavigate, role }: SidebarProp
               <button
                 key={item.label}
                 className={`sidebar-link ${active ? 'sidebar-link-active' : ''}`}
+                title={item.label}
                 onClick={() => {
                   onNavigate(item.screen);
                   onClose();
                 }}
               >
                 <Icon size={18} strokeWidth={active ? 2.1 : 1.8} />
-                <span>{item.label}</span>
-                {item.count && <span className="nav-count">{item.count}</span>}
+                {!isCollapsed && <span>{item.label}</span>}
+                {!isCollapsed && item.count && <span className="nav-count">{item.count}</span>}
               </button>
             );
           })}
 
-          <p className="nav-eyebrow nav-eyebrow-spaced">Operations</p>
+          {!isCollapsed && <p className="nav-eyebrow nav-eyebrow-spaced">Operations</p>}
           {visibleUpcomingItems.map((item) => {
             const Icon = item.icon;
             return (
-              <button key={item.label} className="sidebar-link sidebar-link-muted" onClick={() => {
-                if (item.screen) onNavigate(item.screen);
-                onClose();
-              }}>
+              <button
+                key={item.label}
+                className="sidebar-link sidebar-link-muted"
+                title={item.label}
+                onClick={() => {
+                  if (item.screen) onNavigate(item.screen);
+                  onClose();
+                }}
+              >
                 <Icon size={18} strokeWidth={1.8} />
-                <span>{item.label}</span>
-                <span className="nav-count nav-count-soft">→</span>
+                {!isCollapsed && <span>{item.label}</span>}
+                {!isCollapsed && <span className="nav-count nav-count-soft">→</span>}
               </button>
             );
           })}
         </nav>
 
         <div className="sidebar-bottom">
-          <button className="sidebar-link sidebar-link-muted">
+          <button className="sidebar-link sidebar-link-muted" title="Workspace settings">
             <Settings2 size={18} strokeWidth={1.8} />
-            <span>Workspace settings</span>
+            {!isCollapsed && <span>Workspace settings</span>}
           </button>
           <div className="sidebar-footer">
-            <span className="avatar avatar-neutral">AK</span>
-            <div>
-               <strong>{role === 'customer' ? 'Acme Corporation' : 'Pawan Kumar'}</strong>
-               <small>{roleLabels[role]}</small>
-            </div>
-            <PanelLeftClose size={16} className="muted-icon" />
+            <span className="avatar avatar-neutral">{initials}</span>
+            {!isCollapsed && (
+              <div>
+                 <strong>{displayName}</strong>
+                 <small>{roleLabels[role]}</small>
+              </div>
+            )}
+            <button
+              type="button"
+              className="sidebar-collapse-btn"
+              onClick={toggleCollapse}
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isCollapsed ? (
+                <PanelLeftOpen size={17} className="muted-icon" />
+              ) : (
+                <PanelLeftClose size={17} className="muted-icon" />
+              )}
+            </button>
           </div>
         </div>
       </aside>

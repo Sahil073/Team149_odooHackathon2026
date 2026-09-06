@@ -27,8 +27,11 @@ import { AuditTrailPage } from './pages/governance/AuditTrailPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { CustomerPortalPage } from './pages/customer/CustomerPortalPage';
 
+import { formatDisplayName } from './lib/utils';
+
 import {
   clearToken,
+  getCurrentUser,
   hasToken,
   login,
   saveToken,
@@ -92,6 +95,9 @@ function App() {
   const [authenticated, setAuthenticated] = useState(hasToken);
   const [role, setRole] = useState<Role>('sales-rep');
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [userName, setUserName] = useState<string>(() => {
+    return localStorage.getItem('dealflow.userName') || 'Team';
+  });
   const [screen, setScreen] = useState<Screen>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [authMessage, setAuthMessage] = useState('');
@@ -201,6 +207,14 @@ function App() {
   useEffect(() => {
     if (authenticated) {
       loadAllData();
+      getCurrentUser()
+        .then((res) => {
+          if (res?.data?.name && !['usr-demo', 'usr-demo-new', 'Demo User', 'DEMO USER'].includes(res.data.name)) {
+            setUserName(res.data.name);
+            localStorage.setItem('dealflow.userName', res.data.name);
+          }
+        })
+        .catch(() => {});
     }
   }, [authenticated]);
 
@@ -220,18 +234,71 @@ function App() {
   async function handleAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const email = String(form.get('email') || '');
+    const emailOrUsername = String(form.get('email') || '').trim();
     const password = String(form.get('password') || '');
+
     try {
-      const response = authMode === 'login'
-        ? await login(email, password)
-        : await signup(
-            `${String(form.get('firstName') || '')} ${String(form.get('lastName') || '')}`.trim(),
-            email,
-            password,
-            toApiRole(role),
-          );
-      saveToken(response.token);
+      let displayName = '';
+      let authToken = '';
+
+      if (authMode === 'signup') {
+        const firstName = String(form.get('firstName') || '').trim();
+        const lastName = String(form.get('lastName') || '').trim();
+        displayName = [firstName, lastName].filter(Boolean).join(' ').trim() || formatDisplayName(emailOrUsername);
+
+        const signupEmail = emailOrUsername.includes('@')
+          ? emailOrUsername
+          : `${emailOrUsername.toLowerCase()}@dealflow360.com`;
+
+        const response = await signup(
+          displayName,
+          signupEmail,
+          password,
+          toApiRole(role),
+        );
+        authToken = response.token;
+        if (response.user?.name && !['usr-demo', 'usr-demo-new'].includes(response.user.name)) {
+          displayName = response.user.name;
+        }
+
+        try {
+          const known = JSON.parse(localStorage.getItem('dealflow.usersCache') || '{}');
+          known[emailOrUsername.toLowerCase()] = displayName;
+          if (emailOrUsername.includes('@')) {
+            known[emailOrUsername.split('@')[0].toLowerCase()] = displayName;
+          }
+          localStorage.setItem('dealflow.usersCache', JSON.stringify(known));
+        } catch {}
+      } else {
+        const loginEmail = emailOrUsername.includes('@')
+          ? emailOrUsername
+          : `${emailOrUsername.toLowerCase()}@dealflow360.com`;
+
+        const response = await login(loginEmail, password);
+        authToken = response.token;
+
+        try {
+          const known = JSON.parse(localStorage.getItem('dealflow.usersCache') || '{}');
+          const cached =
+            known[emailOrUsername.toLowerCase()] ||
+            (emailOrUsername.includes('@') ? known[emailOrUsername.split('@')[0].toLowerCase()] : null);
+          if (cached) {
+            displayName = cached;
+          }
+        } catch {}
+
+        if (!displayName && response.user?.name && !['usr-demo', 'usr-demo-new', 'Demo User', 'DEMO USER'].includes(response.user.name)) {
+          displayName = response.user.name;
+        }
+
+        if (!displayName) {
+          displayName = formatDisplayName(emailOrUsername);
+        }
+      }
+
+      saveToken(authToken);
+      setUserName(displayName);
+      localStorage.setItem('dealflow.userName', displayName);
       setAuthenticated(true);
       setAuthMessage('');
       setScreen('dashboard');
@@ -486,7 +553,9 @@ function App() {
 
   function handleLogout() {
     clearToken();
+    localStorage.removeItem('dealflow.userName');
     setAuthenticated(false);
+    setUserName('Team');
     setSelectedQuote(null);
     setSelectedDetailQuote(null);
   }
@@ -540,6 +609,7 @@ function App() {
         onClose={() => setSidebarOpen(false)}
         onNavigate={(nextScreen) => setScreen(nextScreen)}
         role={role}
+        userName={userName}
       />
       <div className="app-main">
         <Topbar
@@ -550,15 +620,16 @@ function App() {
           onNavigateToBackend={handleNavigateToBackend}
           onLogout={handleLogout}
           role={role}
+          userName={userName}
+          onNavigate={setScreen}
         />
         <main className="page-content">
           {screen === 'dashboard' ? (
             <Dashboard
               quotes={quotesList}
-              approvals={approvalRows}
-              fulfillmentOrders={fulfillmentRows}
               dealHealthFlags={dealHealthFlags}
               auditLogs={auditLogs}
+              userName={userName}
               onNavigate={setScreen}
               onOpenQuote={setSelectedQuote}
               onNewQuotation={createQuotation}
