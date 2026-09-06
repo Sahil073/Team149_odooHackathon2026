@@ -1,4 +1,4 @@
-﻿# DealFlow360 — Next-Gen B2B Quote-to-Cash with Smart Layer AI
+﻿# DealFlow360 : Next-Gen B2B Quote-to-Cash with Smart Layer AI
 
 [![Odoo Hackathon 2026](https://img.shields.io/badge/Odoo_Hackathon-2026-714B67?style=flat-square&logo=odoo&logoColor=white)](https://github.com/Sahil073/Team149_odooHackathon2026)
 [![Stack: React 19 + TypeScript](https://img.shields.io/badge/Frontend-React_19_+_TypeScript-61DAFB?style=flat-square&logo=react)](frontend)
