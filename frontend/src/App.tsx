@@ -28,23 +28,29 @@ import { ReportsPage } from './pages/reports/ReportsPage';
 import { CustomerPortalPage } from './pages/customer/CustomerPortalPage';
 
 import { formatDisplayName } from './lib/utils';
+import type { NotificationItem } from './components/common/NotificationsPopover';
 
 import {
   clearToken,
   getCurrentUser,
   hasToken,
   login,
+  portalLogin,
   saveToken,
   signup,
   getQuotations,
   createQuotation as apiCreateQuotation,
+  updateQuotationLines as apiUpdateQuotationLines,
   submitQuotation as apiSubmitQuotation,
   confirmQuotation as apiConfirmQuotation,
+  deleteQuotation as apiDeleteQuotation,
   getApprovals,
   approveQuotation,
   rejectQuotation,
   returnQuotation,
   getFulfillmentOrders,
+  suggestSplit as apiSuggestSplit,
+  acceptSplit as apiAcceptSplit,
   getSubscriptions,
   updateSubscriptionStatus as apiUpdateSubscriptionStatus,
   getInvoices,
@@ -52,6 +58,7 @@ import {
   getProducts,
   createProduct as apiCreateProduct,
   updateProduct as apiUpdateProduct,
+  deleteProduct as apiDeleteProduct,
   getCustomers,
   getWarehouses,
   createWarehouse as apiCreateWarehouse,
@@ -60,6 +67,9 @@ import {
   getDealHealthFlags,
   triggerDealHealthScan,
   getAuditLogs,
+  getPortalQuotations,
+  submitPortalNegotiation as apiSubmitPortalNegotiation,
+  confirmPortalQuotation as apiConfirmPortalQuotation,
   toQuote,
   toApprovalItem,
   toFulfillmentOrder,
@@ -131,6 +141,9 @@ function App() {
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
 
   const [portalStatus, setPortalStatus] = useState<'Under negotiation' | 'Confirmed'>('Under negotiation');
+  const [portalCustomerId, setPortalCustomerId] = useState<string | null>(null);
+  const [portalQuotations, setPortalQuotations] = useState<import('./lib/api').ApiQuotation[]>([]);
+  const [portalConfirmedIds, setPortalConfirmedIds] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState('');
 
   const loadAllData = async () => {
@@ -231,6 +244,76 @@ function App() {
     });
   }, [quotesList, search, statusFilter]);
 
+  const dynamicNotifications = useMemo((): NotificationItem[] => {
+    const items: NotificationItem[] = [];
+
+    // Approvals pending — shown to managers/finance/admin
+    if (role !== 'sales-rep' && role !== 'customer') {
+      const pending = approvalRows.filter((a) => a.status === 'Pending');
+      pending.slice(0, 2).forEach((a) => {
+        items.push({
+          id: `dyn-approval-${a.id}`,
+          title: 'Quotation Approval Required',
+          message: `${a.customer} · ${a.id} — ${a.discount} discount, ${a.risk} risk. Assigned to ${a.assignedTo}.`,
+          timestamp: a.submitted,
+          read: false,
+          type: 'approval',
+          screen: 'approvals',
+        });
+      });
+    }
+
+    // Deal health flags — shown to all staff
+    if (role !== 'customer') {
+      const unresolved = dealHealthFlags.filter((f) => !f.resolved);
+      unresolved.slice(0, 2).forEach((f) => {
+        items.push({
+          id: `dyn-health-${f.id}`,
+          title: f.severity === 'HIGH' ? '🔴 Critical Deal Health Alert' : '⚠️ Deal Health Warning',
+          message: `${f.deal}: ${f.issue}`,
+          timestamp: f.date,
+          read: f.severity !== 'HIGH',
+          type: 'health',
+          screen: 'deal-health',
+        });
+      });
+    }
+
+    // Fulfillment with pending splits
+    if (role !== 'customer') {
+      const pending = fulfillmentRows.filter((f) => f.status === 'Split pending');
+      pending.slice(0, 1).forEach((f) => {
+        items.push({
+          id: `dyn-fulfillment-${f.id}`,
+          title: 'Split Shipment Recommended',
+          message: `${f.customer} · ${f.id} — stock split ready across Indian hubs.`,
+          timestamp: 'Now',
+          read: false,
+          type: 'fulfillment',
+          screen: 'fulfillment',
+        });
+      });
+    }
+
+    // Unpaid invoices
+    if (role === 'finance' || role === 'admin') {
+      const unpaid = invoicesList.filter((inv) => inv.status === 'Unpaid');
+      unpaid.slice(0, 1).forEach((inv) => {
+        items.push({
+          id: `dyn-invoice-${inv.id}`,
+          title: 'Invoice Payment Pending',
+          message: `${inv.customer} · ${inv.amount} due ${inv.dueDate}.`,
+          timestamp: inv.dueDate,
+          read: true,
+          type: 'billing',
+          screen: 'invoices',
+        });
+      });
+    }
+
+    return items;
+  }, [role, approvalRows, dealHealthFlags, fulfillmentRows, invoicesList]);
+
   async function handleAuth(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -301,7 +384,24 @@ function App() {
       localStorage.setItem('dealflow.userName', displayName);
       setAuthenticated(true);
       setAuthMessage('');
-      setScreen('dashboard');
+
+      // Customer role → go directly to customer portal
+      if (role === 'customer') {
+        try {
+          const loginEmail = emailOrUsername.includes('@') ? emailOrUsername : `${emailOrUsername}@dealflow360.com`;
+          const portalRes = await portalLogin(loginEmail, password);
+          saveToken(portalRes.token);
+          setPortalCustomerId(portalRes.customer?.id || null);
+          // Load portal-specific quotations
+          const pqRes = await getPortalQuotations();
+          if (pqRes?.data) setPortalQuotations(pqRes.data);
+        } catch {
+          // portal login may fail for staff — silently continue
+        }
+        setScreen('customer-portal');
+      } else {
+        setScreen('dashboard');
+      }
     } catch (error) {
       setAuthMessage(error instanceof Error ? error.message : 'Unable to sign in.');
     }
@@ -359,12 +459,26 @@ function App() {
     setScreen('fulfillment-detail');
   }
 
-  function acceptSuggestedSplit() {
+  async function acceptSuggestedSplit() {
     if (!selectedFulfillment) return;
-    const updated = { ...selectedFulfillment, status: 'Ready' as const };
-    setFulfillmentRows((rows) => rows.map((row) => (row.id === updated.id ? updated : row)));
-    setSelectedFulfillment(updated);
-    notifyPortal(`${updated.id} split accepted. Fulfillment is ready to release.`);
+    try {
+      // First call suggest-split to get AI-recommended split plan
+      const suggestion = await apiSuggestSplit(selectedFulfillment.id);
+      // Then persist the split to database
+      await apiAcceptSplit(selectedFulfillment.id, suggestion.splits.map((s: any) => ({
+        warehouseId: s.warehouseId || s.warehouse?.id,
+        qtyFulfilled: s.qtyFulfilled,
+        shipmentCost: s.shipmentCost,
+      })));
+      await loadAllData();
+      notifyPortal(`${selectedFulfillment.id} split accepted and saved. Fulfillment is ready to release.`);
+    } catch (err: any) {
+      // Optimistic update on failure
+      const updated = { ...selectedFulfillment, status: 'Ready' as const };
+      setFulfillmentRows((rows) => rows.map((row) => (row.id === updated.id ? updated : row)));
+      setSelectedFulfillment(updated);
+      notifyPortal(err.message || `${selectedFulfillment.id} split accepted.`);
+    }
   }
 
   function openSubscription(subscription: Subscription) {
@@ -454,14 +568,21 @@ function App() {
     }
   }
 
-  async function handleSaveQuotation(payload: any) {
+  async function handleSaveQuotation(
+    payloadOrCustomerId: any,
+    maybeLines?: Array<{ productId: string; qty: number; discountPct: number }>
+  ) {
+    // Normalize: accept (customerId, lines[]) OR ({ customerId, lines })
+    const customerId = typeof payloadOrCustomerId === 'string'
+      ? payloadOrCustomerId
+      : payloadOrCustomerId?.customerId;
+    const lines = maybeLines ?? payloadOrCustomerId?.lines ?? [];
     try {
       const res = await apiCreateQuotation({
-        customerId: payload.customerId,
-        lines: payload.lines.map((l: any) => ({
+        customerId,
+        lines: lines.map((l: any) => ({
           productId: l.productId,
           qty: l.qty,
-          unitPrice: l.unitPrice,
           discountPct: l.discountPct,
         })),
       });
@@ -473,14 +594,20 @@ function App() {
     }
   }
 
-  async function handleSubmitQuotation(payload: any) {
+  async function handleSubmitQuotation(
+    payloadOrCustomerId: any,
+    maybeLines?: Array<{ productId: string; qty: number; discountPct: number }>
+  ) {
+    const customerId = typeof payloadOrCustomerId === 'string'
+      ? payloadOrCustomerId
+      : payloadOrCustomerId?.customerId;
+    const lines = maybeLines ?? payloadOrCustomerId?.lines ?? [];
     try {
       const res = await apiCreateQuotation({
-        customerId: payload.customerId,
-        lines: payload.lines.map((l: any) => ({
+        customerId,
+        lines: lines.map((l: any) => ({
           productId: l.productId,
           qty: l.qty,
-          unitPrice: l.unitPrice,
           discountPct: l.discountPct,
         })),
       });
@@ -493,14 +620,20 @@ function App() {
     }
   }
 
-  async function handleConfirmQuotation(payload: any) {
+  async function handleConfirmQuotation(
+    payloadOrCustomerId: any,
+    maybeLines?: Array<{ productId: string; qty: number; discountPct: number }>
+  ) {
+    const customerId = typeof payloadOrCustomerId === 'string'
+      ? payloadOrCustomerId
+      : payloadOrCustomerId?.customerId;
+    const lines = maybeLines ?? payloadOrCustomerId?.lines ?? [];
     try {
       const res = await apiCreateQuotation({
-        customerId: payload.customerId,
-        lines: payload.lines.map((l: any) => ({
+        customerId,
+        lines: lines.map((l: any) => ({
           productId: l.productId,
           qty: l.qty,
-          unitPrice: l.unitPrice,
           discountPct: l.discountPct,
         })),
       });
@@ -566,15 +699,43 @@ function App() {
     return roleToMap === 'admin' ? 'ADMIN' : 'SALES_REP';
   }
 
-  function handleCustomerProposal(discount: number) {
-    if (discount > 15) {
-      notifyPortal(
-        `Counter proposal submitted (${discount}% discount). Exceeds Gold ceiling (15%), so quotation automatically re-entered the approval flow.`
-      );
-    } else {
-      notifyPortal(`Counter proposal (${discount}% discount) submitted to your sales rep.`);
+  async function handlePortalNegotiation(quotationId: string, discount: number, notes: string) {
+    try {
+      // Submit negotiation via portal API using first line id
+      const activeQ = portalQuotations.find((q) => q.id === quotationId);
+      const changes = (activeQ?.lines || []).map((l) => ({
+        lineId: l.id,
+        newDiscountPct: discount,
+      }));
+      await apiSubmitPortalNegotiation(quotationId, changes, notes);
+      if (discount > 15) {
+        notifyPortal(
+          `Counter proposal (${discount}% discount) submitted. Exceeds Gold ceiling — quotation re-entered the approval flow.`
+        );
+      } else {
+        notifyPortal(`Counter proposal (${discount}% discount) submitted to your account team.`);
+      }
+      // Reload portal quotations
+      const pqRes = await getPortalQuotations();
+      if (pqRes?.data) setPortalQuotations(pqRes.data);
+    } catch (err: any) {
+      notifyPortal(err.message || 'Failed to submit counter proposal.');
+      throw err;
     }
-    loadAllData();
+  }
+
+  async function handlePortalConfirm(quotationId: string) {
+    try {
+      await apiConfirmPortalQuotation(quotationId);
+      setPortalConfirmedIds((prev) => new Set([...prev, quotationId]));
+      notifyPortal('Quotation confirmed! Your sales team has been notified.');
+      // Reload portal quotations
+      const pqRes = await getPortalQuotations();
+      if (pqRes?.data) setPortalQuotations(pqRes.data);
+    } catch (err: any) {
+      notifyPortal(err.message || 'Failed to confirm quotation.');
+      throw err;
+    }
   }
 
   function notifyPortal(message: string) {
@@ -622,6 +783,7 @@ function App() {
           role={role}
           userName={userName}
           onNavigate={setScreen}
+          initialNotifications={dynamicNotifications}
         />
         <main className="page-content">
           {screen === 'dashboard' ? (
@@ -776,12 +938,11 @@ function App() {
             <AuditTrailPage auditLogs={auditLogs} />
           ) : (
             <CustomerPortalPage
+              quotations={portalQuotations}
+              confirmedIds={portalConfirmedIds}
+              onSubmitNegotiation={handlePortalNegotiation}
+              onConfirmQuotation={handlePortalConfirm}
               status={portalStatus}
-              onSubmitRequest={(discount) => handleCustomerProposal(discount)}
-              onConfirm={() => {
-                setPortalStatus('Confirmed');
-                notifyPortal('Quotation confirmed. The sales team has been notified.');
-              }}
             />
           )}
         </main>

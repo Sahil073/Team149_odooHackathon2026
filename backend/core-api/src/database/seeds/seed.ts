@@ -24,9 +24,9 @@ export async function seed(): Promise<void> {
     // ── 1. Users (Roles for Auth & Approval Testing) ─────────────────────────
     const admin = await prisma.user.upsert({
         where: { email: 'admin@dealflow360.com' },
-        update: {},
+        update: { name: 'Vikram Malhotra (Admin)' },
         create: {
-            name: 'System Admin',
+            name: 'Vikram Malhotra (Admin)',
             email: 'admin@dealflow360.com',
             passwordHash: DEFAULT_PASSWORD_HASH,
             role: Role.ADMIN,
@@ -35,9 +35,9 @@ export async function seed(): Promise<void> {
 
     const salesRep = await prisma.user.upsert({
         where: { email: 'rep@dealflow360.com' },
-        update: {},
+        update: { name: 'Nikhil Sharma (Sales Rep)' },
         create: {
-            name: 'Nikhil (Sales Rep)',
+            name: 'Nikhil Sharma (Sales Rep)',
             email: 'rep@dealflow360.com',
             passwordHash: DEFAULT_PASSWORD_HASH,
             role: Role.SALES_REP,
@@ -46,9 +46,9 @@ export async function seed(): Promise<void> {
 
     const salesManager = await prisma.user.upsert({
         where: { email: 'manager@dealflow360.com' },
-        update: {},
+        update: { name: 'Priya Patel (Sales Manager)' },
         create: {
-            name: 'Sarah (Sales Manager)',
+            name: 'Priya Patel (Sales Manager)',
             email: 'manager@dealflow360.com',
             passwordHash: DEFAULT_PASSWORD_HASH,
             role: Role.SALES_MANAGER,
@@ -57,23 +57,23 @@ export async function seed(): Promise<void> {
 
     const finance = await prisma.user.upsert({
         where: { email: 'finance@dealflow360.com' },
-        update: {},
+        update: { name: 'David D\'souza (Finance Lead)' },
         create: {
-            name: 'David (Finance Lead)',
+            name: 'David D\'souza (Finance Lead)',
             email: 'finance@dealflow360.com',
             passwordHash: DEFAULT_PASSWORD_HASH,
             role: Role.FINANCE,
         },
     });
 
-    console.log('  ✔ Seeded internal staff users (Admin, Rep, Manager, Finance)');
+    console.log('  ✔ Seeded internal staff users (Vikram, Nikhil, Priya, David)');
 
-    // ── 2. Customers (All 3 Tiers for Discount Governance) ───────────────────
+    // ── 2. Customers (Indian Enterprises across Tiers) ───────────────────────
     const acmeBronze = await prisma.customer.upsert({
         where: { email: 'contact@acmecorp.com' },
-        update: {},
+        update: { name: 'Tata Consultancy Services Ltd' },
         create: {
-            name: 'Acme Corp',
+            name: 'Tata Consultancy Services Ltd',
             email: 'contact@acmecorp.com',
             tier: CustomerTier.BRONZE,
             portalPasswordHash: DEFAULT_PASSWORD_HASH,
@@ -82,9 +82,9 @@ export async function seed(): Promise<void> {
 
     const betaSilver = await prisma.customer.upsert({
         where: { email: 'procurement@betaindustries.com' },
-        update: {},
+        update: { name: 'Infosys Technologies Ltd' },
         create: {
-            name: 'Beta Industries',
+            name: 'Infosys Technologies Ltd',
             email: 'procurement@betaindustries.com',
             tier: CustomerTier.SILVER,
             portalPasswordHash: DEFAULT_PASSWORD_HASH,
@@ -93,16 +93,16 @@ export async function seed(): Promise<void> {
 
     const apexGold = await prisma.customer.upsert({
         where: { email: 'deals@apexglobal.com' },
-        update: {},
+        update: { name: 'Reliance Industries Global' },
         create: {
-            name: 'Apex Global',
+            name: 'Reliance Industries Global',
             email: 'deals@apexglobal.com',
             tier: CustomerTier.GOLD,
             portalPasswordHash: DEFAULT_PASSWORD_HASH,
         },
     });
 
-    console.log('  ✔ Seeded customers across tiers (Bronze, Silver, Gold)');
+    console.log('  ✔ Seeded Indian customers (TCS, Infosys, Reliance)');
 
     // ── 3. Discount Tiers (Customer Tier Max Allowed Discount %) ─────────────
     await prisma.discountTier.upsert({
@@ -161,99 +161,99 @@ export async function seed(): Promise<void> {
 
     console.log('  ✔ Seeded approval chain rules (Auto, Manager, Manager + Finance)');
 
-    // ── 6. Price Lists ───────────────────────────────────────────────────────
+    // ── 6. Price Lists in INR ───────────────────────────────────────────────
     await prisma.priceList.deleteMany();
     await prisma.priceList.createMany({
         data: [
-            { customerTier: CustomerTier.BRONZE, currency: 'USD', priceRule: 'Standard Base Price' },
-            { customerTier: CustomerTier.SILVER, currency: 'USD', priceRule: '5% Tier Base Discount' },
-            { customerTier: CustomerTier.GOLD, currency: 'USD', priceRule: '10% Tier Base Discount' },
+            { customerTier: CustomerTier.BRONZE, currency: 'INR', priceRule: 'Standard Base Price (₹)' },
+            { customerTier: CustomerTier.SILVER, currency: 'INR', priceRule: '5% Tier Base Discount (₹)' },
+            { customerTier: CustomerTier.GOLD, currency: 'INR', priceRule: '10% Tier Base Discount (₹)' },
         ],
     });
 
-    console.log('  ✔ Seeded price lists for tiers');
+    console.log('  ✔ Seeded price lists for tiers in INR');
 
-    // ── 7. Warehouse Pair (Phase 3: 1 Warehouse Pair) ─────────────────────────
+    // ── 7. Indian Logistics Hubs / Warehouses ───────────────────────────────
     const mainWarehouse = await prisma.warehouse.upsert({
         where: { id: 'w-main-warehouse' },
-        update: {},
+        update: { name: 'Mumbai Central Hub', location: 'Bhiwandi, Maharashtra' },
         create: {
             id: 'w-main-warehouse',
-            name: 'Main Warehouse',
-            location: 'Mumbai Central Hub',
+            name: 'Mumbai Central Hub',
+            location: 'Bhiwandi, Maharashtra',
         },
     });
 
     const eastDepot = await prisma.warehouse.upsert({
         where: { id: 'w-east-depot' },
-        update: {},
+        update: { name: 'Bengaluru Tech Depot', location: 'Whitefield, Karnataka' },
         create: {
             id: 'w-east-depot',
-            name: 'East Depot',
-            location: 'Kolkata Regional Hub',
+            name: 'Bengaluru Tech Depot',
+            location: 'Whitefield, Karnataka',
         },
     });
 
-    console.log('  ✔ Seeded warehouse pair (Main Warehouse, East Depot)');
+    console.log('  ✔ Seeded Indian warehouse hubs (Mumbai Central, Bengaluru Tech Depot)');
 
-    // ── 8. Products (Hardware, Services, Subscriptions) ──────────────────────
+    // ── 8. Products in INR (Hardware, Services, Subscriptions) ───────────────
     const serverRack = await prisma.product.upsert({
         where: { id: 'p-hardware-server-rack' },
-        update: {},
+        update: { name: 'Enterprise Server Rack 42U', price: 210000.00, taxPct: 18 },
         create: {
             id: 'p-hardware-server-rack',
             name: 'Enterprise Server Rack 42U',
             category: ProductCategory.HARDWARE,
-            price: 2500.00,
-            unit: 'unit',
+            price: 210000.00,
+            unit: 'rack',
             taxPct: 18,
-            description: 'High density datacenter server rack with built-in PDU and thermal venting.',
+            description: 'Datacenter grade 42U rack with intelligent PDU, dual thermal sensors, and cable management.',
         },
     });
 
     const backupAppliance = await prisma.product.upsert({
         where: { id: 'p-hardware-backup' },
-        update: {},
+        update: { name: 'Cloud Backup Appliance 4TB NVMe', price: 65000.00, taxPct: 18 },
         create: {
             id: 'p-hardware-backup',
-            name: 'Cloud Backup Appliance 2TB',
+            name: 'Cloud Backup Appliance 4TB NVMe',
             category: ProductCategory.HARDWARE,
-            price: 800.00,
+            price: 65000.00,
             unit: 'unit',
             taxPct: 18,
-            description: 'On-premise fast NVMe recovery gateway with cloud sync.',
+            description: 'High-speed local NVMe recovery appliance with automated AES-256 cloud synchronization.',
         },
     });
 
     const setupService = await prisma.product.upsert({
         where: { id: 'p-service-setup' },
-        update: {},
+        update: { name: 'Setup & Implementation Service', price: 28000.00, taxPct: 18 },
         create: {
             id: 'p-service-setup',
             name: 'Setup & Implementation Service',
             category: ProductCategory.SERVICES,
-            price: 1200.00,
-            unit: 'service',
+            price: 28000.00,
+            unit: 'session',
             taxPct: 18,
-            description: 'Full white-glove hardware rack mounting, configuration, and network routing setup.',
+            description: 'Onsite white-glove hardware installation, OS provisioning, and network routing configuration.',
         },
     });
 
     const saasMonitoring = await prisma.product.upsert({
         where: { id: 'p-sub-monitoring' },
-        update: {},
+        update: { name: 'Premium SaaS Cloud Monitoring', price: 4500.00, taxPct: 18 },
         create: {
             id: 'p-sub-monitoring',
             name: 'Premium SaaS Cloud Monitoring',
             category: ProductCategory.SUBSCRIPTIONS,
-            price: 150.00,
+            price: 4500.00,
             unit: 'license/month',
             taxPct: 18,
-            description: '24/7 automated telemetry, anomaly alerting, and predictive cluster health monitoring.',
+            description: '24/7 automated telemetry, cluster anomaly detection, and predictive failover alerts.',
         },
     });
 
-    console.log('  ✔ Seeded products (Hardware, Services, Subscriptions)');
+    console.log('  ✔ Seeded Indian master products in INR (Server Rack, Cloud Backup, Setup, SaaS Monitoring)');
 
     // ── 9. Stock Levels (Split Stock across Warehouses for Split Demo) ───────
     // If order requests 20 server racks: 15 from Main, 5 from East Depot!
@@ -419,7 +419,7 @@ export async function seed(): Promise<void> {
                 quotationId: q1042.id,
                 productId: serverRack.id,
                 qty: 4,
-                unitPrice: 2500.00,
+                unitPrice: 210000.00,
                 discountPct: 5,
                 lineLimitPct: 15,
                 status: QuotationLineStatus.OK,
@@ -428,7 +428,7 @@ export async function seed(): Promise<void> {
                 quotationId: q1042.id,
                 productId: backupAppliance.id,
                 qty: 4,
-                unitPrice: 800.00,
+                unitPrice: 65000.00,
                 discountPct: 9,
                 lineLimitPct: 15,
                 status: QuotationLineStatus.OK,
@@ -438,7 +438,7 @@ export async function seed(): Promise<void> {
 
     const q1039 = await prisma.quotation.upsert({
         where: { id: 'Q-1039' },
-        update: {},
+        update: { customerId: betaSilver.id, salesRepId: salesRep.id, status: QuotationStatus.PENDING_APPROVAL, blendedRiskScore: 68 },
         create: {
             id: 'Q-1039',
             customerId: betaSilver.id,
@@ -455,7 +455,7 @@ export async function seed(): Promise<void> {
                 quotationId: q1039.id,
                 productId: backupAppliance.id,
                 qty: 5,
-                unitPrice: 800.00,
+                unitPrice: 65000.00,
                 discountPct: 20,
                 lineLimitPct: 10,
                 status: QuotationLineStatus.FLAGGED,
@@ -465,7 +465,7 @@ export async function seed(): Promise<void> {
 
     const q1035 = await prisma.quotation.upsert({
         where: { id: 'Q-1035' },
-        update: {},
+        update: { customerId: apexGold.id, salesRepId: salesRep.id, status: QuotationStatus.APPROVED, blendedRiskScore: 12 },
         create: {
             id: 'Q-1035',
             customerId: apexGold.id,
@@ -482,9 +482,18 @@ export async function seed(): Promise<void> {
                 quotationId: q1035.id,
                 productId: serverRack.id,
                 qty: 3,
-                unitPrice: 2500.00,
+                unitPrice: 210000.00,
                 discountPct: 0,
                 lineLimitPct: 15,
+                status: QuotationLineStatus.OK,
+            },
+            {
+                quotationId: q1035.id,
+                productId: saasMonitoring.id,
+                qty: 1,
+                unitPrice: 4500.00,
+                discountPct: 0,
+                lineLimitPct: 12,
                 status: QuotationLineStatus.OK,
             },
         ],
@@ -492,7 +501,7 @@ export async function seed(): Promise<void> {
 
     const q1031 = await prisma.quotation.upsert({
         where: { id: 'Q-1031' },
-        update: {},
+        update: { customerId: acmeBronze.id, salesRepId: salesRep.id, status: QuotationStatus.FULFILLED, blendedRiskScore: 10 },
         create: {
             id: 'Q-1031',
             customerId: acmeBronze.id,
@@ -509,7 +518,7 @@ export async function seed(): Promise<void> {
                 quotationId: q1031.id,
                 productId: serverRack.id,
                 qty: 3,
-                unitPrice: 2500.00,
+                unitPrice: 210000.00,
                 discountPct: 5,
                 lineLimitPct: 15,
                 status: QuotationLineStatus.OK,
@@ -518,7 +527,7 @@ export async function seed(): Promise<void> {
                 quotationId: q1031.id,
                 productId: backupAppliance.id,
                 qty: 3,
-                unitPrice: 800.00,
+                unitPrice: 65000.00,
                 discountPct: 0,
                 lineLimitPct: 15,
                 status: QuotationLineStatus.OK,
@@ -526,7 +535,7 @@ export async function seed(): Promise<void> {
         ],
     });
 
-    console.log('  ✔ Seeded quotations (Q-1042 Draft, Q-1039 Pending Approval, Q-1035 Approved, Q-1031 Fulfilled)');
+    console.log('  ✔ Seeded Indian quotations (Q-1042 TCS, Q-1039 Infosys, Q-1035 Reliance, Q-1031 Fulfilled)');
 
     // ── 13. Fulfillment Splits ────────────────────────────────────────────────
     await prisma.fulfillmentSplit.deleteMany({ where: { quotationId: q1031.id } });
@@ -536,20 +545,20 @@ export async function seed(): Promise<void> {
                 quotationId: q1031.id,
                 warehouseId: mainWarehouse.id,
                 qtyFulfilled: 4,
-                shipmentCost: 42.00,
+                shipmentCost: 3500.00,
                 generatedBy: 'core-rule',
             },
             {
                 quotationId: q1031.id,
                 warehouseId: eastDepot.id,
                 qtyFulfilled: 2,
-                shipmentCost: 29.00,
+                shipmentCost: 2200.00,
                 generatedBy: 'core-rule',
             },
         ],
     });
 
-    console.log('  ✔ Seeded fulfillment warehouse splits');
+    console.log('  ✔ Seeded fulfillment warehouse splits in INR');
 
     // ── 14. Subscriptions ─────────────────────────────────────────────────────
     await prisma.subscription.upsert({
@@ -569,31 +578,31 @@ export async function seed(): Promise<void> {
     // ── 15. Invoices ──────────────────────────────────────────────────────────
     await prisma.invoice.upsert({
         where: { id: 'INV-1042' },
-        update: {},
+        update: { amount: 1240000.00 },
         create: {
             id: 'INV-1042',
             quotationId: q1042.id,
             type: InvoiceType.ONE_TIME,
             status: InvoiceStatus.PENDING,
-            amount: 12400.00,
+            amount: 1240000.00,
             dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         },
     });
 
     await prisma.invoice.upsert({
         where: { id: 'INV-1031' },
-        update: {},
+        update: { amount: 825000.00 },
         create: {
             id: 'INV-1031',
             quotationId: q1031.id,
             type: InvoiceType.ONE_TIME,
             status: InvoiceStatus.PAID,
-            amount: 9750.00,
+            amount: 825000.00,
             dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
         },
     });
 
-    console.log('  ✔ Seeded invoices (INV-1042 Unpaid, INV-1031 Paid)');
+    console.log('  ✔ Seeded invoices in INR (INV-1042 Pending, INV-1031 Paid)');
 
     // ── 16. Deal Health Flags ────────────────────────────────────────────────
     await prisma.dealHealthFlag.deleteMany();
@@ -603,14 +612,14 @@ export async function seed(): Promise<void> {
                 quotationId: q1039.id,
                 flagType: DealHealthFlagType.DISCOUNT_ANOMALY,
                 severity: DealHealthSeverity.HIGH,
-                detail: 'Line discount of 20% exceeds Silver tier allowance (10%)',
+                detail: 'Line discount of 20% on Backup Appliance exceeds Silver tier allowance (10%)',
                 resolved: false,
             },
             {
                 quotationId: q1042.id,
                 flagType: DealHealthFlagType.STALLED,
                 severity: DealHealthSeverity.MEDIUM,
-                detail: 'Draft deal inactive for 5 days without customer engagement',
+                detail: 'Tata Consultancy Services draft deal pending revision for 5 days',
                 resolved: false,
             },
         ],
@@ -627,33 +636,33 @@ export async function seed(): Promise<void> {
                 entityId: 'Q-1042',
                 userId: salesRep.id,
                 action: 'QUOTATION_CREATED',
-                reason: 'Draft quotation opened for Acme Corp',
+                reason: 'Draft quotation opened for Tata Consultancy Services Ltd',
             },
             {
                 entityType: 'Quotation',
                 entityId: 'Q-1039',
                 userId: salesRep.id,
                 action: 'APPROVAL_REQUIRED',
-                reason: 'Discount ceiling breached (20% > 10%)',
+                reason: 'Discount ceiling breached (20% > 10% Silver limit)',
             },
             {
                 entityType: 'Quotation',
                 entityId: 'Q-1035',
                 userId: salesManager.id,
                 action: 'QUOTATION_APPROVED',
-                reason: 'Approved by Sales Manager within tier rules',
+                reason: 'Approved by Priya Patel for Reliance Industries Global within tier rules',
             },
             {
                 entityType: 'Fulfillment',
                 entityId: 'Q-1031',
                 userId: admin.id,
                 action: 'SPLIT_ACCEPTED',
-                reason: 'Warehouse split accepted (Main Warehouse + East Depot)',
+                reason: 'Warehouse split accepted (Mumbai Central Hub + Bengaluru Tech Depot)',
             },
         ],
     });
 
-    console.log('  ✔ Seeded audit log events');
+    console.log('  ✔ Seeded Indian market audit logs');
     console.log('🎉 Seed completed successfully!');
 }
 

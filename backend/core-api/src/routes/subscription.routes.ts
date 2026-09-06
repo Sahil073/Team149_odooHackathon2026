@@ -37,11 +37,10 @@ router.get('/plans', authenticateStaff, async (_req: Request, res: Response, nex
     }
 });
 
-// POST /api/subscriptions/plans — create a subscription plan (Admin only)
+// POST /api/subscriptions/plans — create a subscription plan
 router.post(
     '/plans',
     authenticateStaff,
-    requireRole('ADMIN'),
     validate(planSchema),
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {

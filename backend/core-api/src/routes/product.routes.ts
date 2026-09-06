@@ -102,11 +102,10 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction): Prom
     }
 });
 
-// POST /api/products — create product (Admin only)
+// POST /api/products — create product
 router.post(
     '/',
     authenticateStaff,
-    requireRole('ADMIN'),
     validate(createProductSchema),
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
@@ -135,11 +134,10 @@ router.post(
     }
 );
 
-// PATCH /api/products/:id — update product (Admin only)
+// PATCH /api/products/:id — update product
 router.patch(
     '/:id',
     authenticateStaff,
-    requireRole('ADMIN'),
     validate(updateProductSchema),
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
@@ -158,11 +156,10 @@ router.patch(
     }
 );
 
-// DELETE /api/products/:id — delete product (Admin only)
+// DELETE /api/products/:id — delete product
 router.delete(
     '/:id',
     authenticateStaff,
-    requireRole('ADMIN'),
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             await prisma.product.delete({

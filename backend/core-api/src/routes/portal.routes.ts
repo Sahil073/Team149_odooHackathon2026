@@ -33,6 +33,37 @@ function toEventCategory(category: ProductCategory): 'Hardware' | 'Services' | '
     }
 }
 
+// GET /api/portal/quotations — list all quotations accessible to portal customer
+router.get(
+    '/quotations',
+    authenticatePortal,
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const where: Record<string, any> = {};
+            if (req.customer) {
+                where.customerId = req.customer.id;
+            }
+
+            const quotations = await prisma.quotation.findMany({
+                where,
+                include: {
+                    customer: { select: { id: true, name: true, tier: true, email: true } },
+                    lines: {
+                        include: {
+                            product: { select: { id: true, name: true, category: true, price: true, unit: true } },
+                        },
+                    },
+                },
+                orderBy: { updatedAt: 'desc' },
+            });
+
+            res.json({ data: quotations });
+        } catch (err) {
+            next(err);
+        }
+    }
+);
+
 // GET /api/portal/quotations/:id — customer view of quotation
 router.get(
     '/quotations/:id',
@@ -55,7 +86,7 @@ router.get(
                 throw new NotFoundError(`Quotation with id ${req.params.id} not found`);
             }
 
-            // Ensure the portal customer owns this quotation
+            // Ensure the portal customer owns this quotation (if customer token)
             if (req.customer && quotation.customerId !== req.customer.id) {
                 res.status(403).json({ error: 'You are not authorized to view this quotation' });
                 return;
@@ -198,6 +229,17 @@ router.post(
             await prisma.quotation.update({
                 where: { id: quotationId },
                 data: { status: QuotationStatus.APPROVED },
+            });
+
+            // Record customer confirmation in Audit Log
+            await prisma.auditLog.create({
+                data: {
+                    entityType: 'Quotation',
+                    entityId: quotationId,
+                    userId: req.user?.id,
+                    action: 'CUSTOMER_CONFIRMED_QUOTATION',
+                    reason: `Quotation confirmed by customer portal account (${req.customer?.email || req.user?.email || 'portal'})`,
+                },
             });
 
             res.json({

@@ -19,6 +19,7 @@ import type {
   SubscriptionStatus,
   Warehouse,
 } from '../types';
+import { formatINR } from './utils';
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL ||
@@ -190,6 +191,12 @@ export function addProductVariant(productId: string, variant: { attribute: strin
   });
 }
 
+export function deleteProduct(id: string) {
+  return request<{ message: string }>(`/products/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // ── Customers ─────────────────────────────────────────────────────────────
 
 export function getCustomers(tier?: string) {
@@ -272,6 +279,12 @@ export function submitQuotation(id: string) {
 export function confirmQuotation(id: string) {
   return request<{ data: ApiQuotation }>(`/quotations/${id}/confirm`, {
     method: 'POST',
+  });
+}
+
+export function deleteQuotation(id: string) {
+  return request<{ message: string }>(`/quotations/${id}`, {
+    method: 'DELETE',
   });
 }
 
@@ -529,6 +542,10 @@ export function saveApprovalChains(rules: ApprovalRule[]) {
 
 // ── Customer Portal ───────────────────────────────────────────────────────
 
+export function getPortalQuotations() {
+  return request<{ data: ApiQuotation[] }>('/portal/quotations');
+}
+
 export function getPortalQuotation(id: string) {
   return request<{ data: ApiQuotation }>(`/portal/quotations/${id}`);
 }
@@ -624,7 +641,7 @@ export function toQuote(apiQuote: ApiQuotation): Quote {
     id: apiQuote.id,
     customer: apiQuote.customer?.name || 'Customer',
     initials: getInitials(apiQuote.customer?.name),
-    amount: `$${numericAmount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+    amount: formatINR(numericAmount),
     numericAmount,
     status: toQuoteStatus(apiQuote.status),
     owner: apiQuote.salesRep?.name || 'Sales Rep',
@@ -673,14 +690,14 @@ export function toFulfillmentOrder(apiQuote: ApiQuotation): FulfillmentOrder {
         warehouse: s.warehouse?.name || 'Warehouse',
         quantity: `${s.qtyFulfilled} units`,
         shipments: '1',
-        cost: `$${Number(s.shipmentCost || 25).toFixed(0)}`,
+        cost: formatINR(Number(s.shipmentCost || 2500)),
       }))
     : [
         {
           warehouse: 'Main Warehouse',
           quantity: `${totalItems} units`,
           shipments: '1',
-          cost: '$35',
+          cost: formatINR(3500),
         },
       ];
 
@@ -723,20 +740,20 @@ export function toSubscription(apiSub: ApiSubscription): Subscription {
     cycle: cycleMap[apiSub.plan?.cycle || 'MONTHLY'] || 'Monthly',
     nextBill: apiSub.nextBillDate ? new Date(apiSub.nextBillDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—',
     status: statusMap[apiSub.status] || 'Active',
-    amount: `$${amountNum.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+    amount: formatINR(amountNum),
   };
 }
 
 export function toInvoice(apiInv: ApiInvoice): Invoice {
   const amountNum = Number(apiInv.amount) || 0;
   const status: InvoiceStatus = apiInv.status === 'PAID' ? 'Paid' : 'Unpaid';
-  const dueDate = apiInv.dueDate ? new Date(apiInv.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+  const dueDate = apiInv.dueDate ? new Date(apiInv.dueDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : '—';
   const source = apiInv.type === 'RECURRING' ? `${apiInv.quotationId} · recurring billing` : `${apiInv.quotationId} · one-time order`;
 
   return {
     id: apiInv.id,
     customer: apiInv.quotation?.customer?.name || 'Customer',
-    amount: `$${amountNum.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+    amount: formatINR(amountNum),
     status,
     dueDate,
     source,
@@ -758,7 +775,7 @@ export function toProduct(product: ApiProduct): Product {
     name: product.name,
     category,
     variantsText: variants.length ? `${variants.length} variant(s)` : '—',
-    price: `$${numericPrice.toLocaleString()}`,
+    price: formatINR(numericPrice),
     numericPrice,
     unit: product.unit || 'unit',
     tax: `${product.taxPct}%`,
@@ -771,7 +788,7 @@ export function toProduct(product: ApiProduct): Product {
       id: variant.id,
       attribute: variant.attribute,
       values: variant.value,
-      extraPrice: `$${Number(variant.extraPrice).toLocaleString()}`,
+      extraPrice: formatINR(Number(variant.extraPrice)),
     })),
     pricelistsList: [],
   };

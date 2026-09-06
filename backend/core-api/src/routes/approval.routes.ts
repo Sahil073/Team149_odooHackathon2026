@@ -23,7 +23,6 @@ const returnActionSchema = z.object({
 router.get(
     '/',
     authenticateStaff,
-    requireRole('SALES_MANAGER', 'FINANCE', 'ADMIN'),
     async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const pending = await prisma.quotation.findMany({

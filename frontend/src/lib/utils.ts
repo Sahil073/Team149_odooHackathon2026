@@ -18,3 +18,19 @@ export function formatDisplayName(identifier: string): string {
     .trim();
   return formatted || identifier.trim();
 }
+
+export function formatINR(amount: number | string): string {
+  const num = typeof amount === 'number' ? amount : Number(String(amount).replace(/[^0-9.-]+/g, '')) || 0;
+  return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+}
+
+export function formatINRLarge(amount: number | string): string {
+  const num = typeof amount === 'number' ? amount : Number(String(amount).replace(/[^0-9.-]+/g, '')) || 0;
+  if (num >= 10000000) {
+    return `₹${(num / 10000000).toFixed(2)} Cr`;
+  }
+  if (num >= 100000) {
+    return `₹${(num / 100000).toFixed(2)} L`;
+  }
+  return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+}

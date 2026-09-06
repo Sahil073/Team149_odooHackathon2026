@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, MessageCircle, RotateCcw, Send, Sparkles } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, MessageCircle, RotateCcw, Send, Sparkles } from 'lucide-react';
 import { BrandMark } from '../../components/BrandMark';
+import type { ApiQuotation } from '../../lib/api';
+import { formatINR } from '../../lib/utils';
 
 type ChatMessage = {
   id: number;
@@ -10,31 +12,101 @@ type ChatMessage = {
   time: string;
 };
 
+interface Props {
+  quotations: ApiQuotation[];
+  confirmedIds: Set<string>;
+  onSubmitNegotiation: (quotationId: string, discount: number, notes: string) => Promise<void>;
+  onConfirmQuotation: (quotationId: string) => Promise<void>;
+  /** Legacy single-quotation compat props */
+  status?: 'Under negotiation' | 'Confirmed';
+  onSubmitRequest?: (discount: number, date: string, message: string) => void;
+  onConfirm?: () => void;
+}
+
 export function CustomerPortalPage({
-  status,
+  quotations = [],
+  confirmedIds = new Set(),
+  onSubmitNegotiation,
+  onConfirmQuotation,
+  status: legacyStatus,
   onSubmitRequest,
   onConfirm,
-}: {
-  status: 'Under negotiation' | 'Confirmed';
-  onSubmitRequest: (discount: number, date: string, message: string) => void;
-  onConfirm: () => void;
-}) {
-  const [counterDiscount, setCounterDiscount] = useState('18');
-  const [deliveryDate, setDeliveryDate] = useState('2026-10-15');
-  const [message, setMessage] = useState('We need an 18% volume discount to finalize this order this quarter.');
+}: Props) {
+  const [activeQuotationId, setActiveQuotationId] = useState<string | null>(
+    quotations.length > 0 ? quotations[0].id : null
+  );
+  const [counterDiscount, setCounterDiscount] = useState('10');
+  const [message, setMessage] = useState('');
   const [activeView, setActiveView] = useState<'quotation' | 'messages'>('quotation');
   const [chatDraft, setChatDraft] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [confirming, setConfirming] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { id: 1, author: 'account-team', name: 'Maya Shah', text: 'Hi Acme team, I have shared the latest quotation and can help with any questions.', time: '10:14 AM' },
-    { id: 2, author: 'customer', name: 'You', text: 'Can we move the deployment date to October?', time: '10:18 AM' },
-    { id: 3, author: 'account-team', name: 'Maya Shah', text: 'Yes, October 15 is available. I have noted it on the counter proposal.', time: '10:21 AM' },
+    {
+      id: 1,
+      author: 'account-team',
+      name: 'Nikhil Sharma',
+      text: 'Namaskar! I have shared the latest quotation. Feel free to raise any queries or propose changes.',
+      time: '10:14 AM',
+    },
+    {
+      id: 2,
+      author: 'customer',
+      name: 'You',
+      text: 'Can we get a better discount for bulk hardware order?',
+      time: '10:22 AM',
+    },
+    {
+      id: 3,
+      author: 'account-team',
+      name: 'Nikhil Sharma',
+      text: 'Noted! Let me check with my manager. I will revert by end of day.',
+      time: '10:28 AM',
+    },
   ]);
-  const confirmed = status === 'Confirmed';
 
-  function handleSubmit(e: React.FormEvent) {
+  const activeQuotation = quotations.find((q) => q.id === activeQuotationId) ?? quotations[0] ?? null;
+  const lines = activeQuotation?.lines ?? [];
+
+  // Compute totals
+  const totalAmount = lines.reduce((sum, line) => {
+    const price = Number(line.unitPrice) || 0;
+    const disc = line.discountPct || 0;
+    return sum + price * line.qty * (1 - disc / 100);
+  }, 0);
+
+  const isConfirmed = activeQuotation
+    ? confirmedIds.has(activeQuotation.id) || activeQuotation.status === 'FULFILLED' || activeQuotation.status === 'CLOSED'
+    : legacyStatus === 'Confirmed';
+
+  async function handleSubmitNegotiation(e: React.FormEvent) {
     e.preventDefault();
-    const discountVal = Number(counterDiscount) || 0;
-    onSubmitRequest(discountVal, deliveryDate, message);
+    if (!activeQuotation) {
+      // Legacy fallback
+      const discountVal = Number(counterDiscount) || 0;
+      onSubmitRequest?.(discountVal, '', message);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await onSubmitNegotiation(activeQuotation.id, Number(counterDiscount) || 0, message);
+      setMessage('');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleConfirm() {
+    if (!activeQuotation) {
+      onConfirm?.();
+      return;
+    }
+    setConfirming(activeQuotation.id);
+    try {
+      await onConfirmQuotation(activeQuotation.id);
+    } finally {
+      setConfirming(null);
+    }
   }
 
   function handleSendMessage(event: React.FormEvent) {
@@ -48,41 +120,78 @@ export function CustomerPortalPage({
     setChatDraft('');
   }
 
+  const customerName = activeQuotation?.customer?.name || 'Your Company';
+  const customerInitials = customerName
+    .split(' ')
+    .filter(Boolean)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
   return (
     <div className="portal-shell">
       <div className="portal-header">
         <BrandMark />
         <div className="portal-nav">
-          <button className={activeView === 'quotation' ? 'portal-nav-active' : ''} onClick={() => setActiveView('quotation')}>
-            My quotation
+          <button
+            className={activeView === 'quotation' ? 'portal-nav-active' : ''}
+            onClick={() => setActiveView('quotation')}
+          >
+            My Quotation{quotations.length > 1 ? `s (${quotations.length})` : ''}
           </button>
-          <button className={activeView === 'messages' ? 'portal-nav-active' : ''} onClick={() => setActiveView('messages')}>
-            Messages <span className="portal-message-count">{chatMessages.filter((item) => item.author === 'account-team').length}</span>
+          <button
+            className={activeView === 'messages' ? 'portal-nav-active' : ''}
+            onClick={() => setActiveView('messages')}
+          >
+            Messages{' '}
+            <span className="portal-message-count">
+              {chatMessages.filter((m) => m.author === 'account-team').length}
+            </span>
           </button>
           <button>Profile</button>
         </div>
-        <span className="avatar avatar-indigo portal-avatar">AC</span>
+        <span className="avatar avatar-indigo portal-avatar">{customerInitials}</span>
       </div>
 
       <div className="portal-content">
         <div className="portal-heading">
-          <span className="eyebrow">ACME CORPORATION / CUSTOMER PORTAL</span>
+          <span className="eyebrow">{customerName.toUpperCase()} / CUSTOMER PORTAL</span>
           <h1>
             Review &amp; Negotiate Quotation<span className="heading-period">.</span>
           </h1>
           <p>
-            Review terms live, submit counter proposals, or confirm your order directly without back-and-forth email delay.
+            Review your quotation live, submit counter proposals in ₹ INR, or confirm your order — no back-and-forth
+            emails needed.
           </p>
         </div>
 
+        {/* Quotation selector if multiple */}
+        {quotations.length > 1 && (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+            {quotations.map((q) => (
+              <button
+                key={q.id}
+                className={`button ${activeQuotationId === q.id ? 'button-primary' : ''}`}
+                style={{ fontSize: '12px', padding: '4px 10px' }}
+                onClick={() => setActiveQuotationId(q.id)}
+              >
+                {q.id.slice(0, 16)}… · {q.status}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="portal-status">
           <span
-            className={`portal-status-dot ${
-              confirmed ? 'portal-status-confirmed' : ''
-            }`}
+            className={`portal-status-dot ${isConfirmed ? 'portal-status-confirmed' : ''}`}
           />
-          <span>Status: {confirmed ? 'Confirmed' : 'Under negotiation'}</span>
-          <span className="portal-quote-id">Q-1042 · Valid until Sep 30</span>
+          <span>Status: {isConfirmed ? 'Confirmed ✔' : 'Under negotiation'}</span>
+          {activeQuotation && (
+            <span className="portal-quote-id">
+              {activeQuotation.id.slice(0, 20)} · {activeQuotation.status}
+            </span>
+          )}
         </div>
 
         {activeView === 'messages' ? (
@@ -90,8 +199,10 @@ export function CustomerPortalPage({
             <div className="portal-chat-header">
               <div>
                 <span className="eyebrow">DIRECT CONVERSATION</span>
-                <h2><MessageCircle size={18} /> Acme account team</h2>
-                <p>Discuss quotation Q-1042 with Maya Shah.</p>
+                <h2>
+                  <MessageCircle size={18} /> Account team
+                </h2>
+                <p>Discuss your quotation with Nikhil Sharma, Sales Rep.</p>
               </div>
               <button className="back-link portal-back-button" onClick={() => setActiveView('quotation')}>
                 <ArrowLeft size={15} /> Back to quotation
@@ -99,7 +210,10 @@ export function CustomerPortalPage({
             </div>
             <div className="portal-chat-messages" aria-live="polite">
               {chatMessages.map((chatMessage) => (
-                <div className={`portal-chat-message portal-chat-${chatMessage.author}`} key={chatMessage.id}>
+                <div
+                  className={`portal-chat-message portal-chat-${chatMessage.author}`}
+                  key={chatMessage.id}
+                >
                   <div className="portal-chat-bubble">
                     <strong>{chatMessage.name}</strong>
                     <p>{chatMessage.text}</p>
@@ -111,110 +225,144 @@ export function CustomerPortalPage({
             <form className="portal-chat-compose" onSubmit={handleSendMessage}>
               <label htmlFor="portal-chat-input">Message your account team</label>
               <div>
-                <input id="portal-chat-input" value={chatDraft} onChange={(event) => setChatDraft(event.target.value)} placeholder="Write a message..." />
-                <button className="button button-primary" type="submit" disabled={!chatDraft.trim()}><Send size={15} /> Send</button>
+                <input
+                  id="portal-chat-input"
+                  value={chatDraft}
+                  onChange={(event) => setChatDraft(event.target.value)}
+                  placeholder="Write a message..."
+                />
+                <button className="button button-primary" type="submit" disabled={!chatDraft.trim()}>
+                  <Send size={15} /> Send
+                </button>
               </div>
             </form>
           </section>
-        ) : <div className="portal-grid">
-          {/* Quotation Lines Panel */}
-          <section className="panel portal-lines-panel">
-            <div className="panel-heading">
+        ) : (
+          <div className="portal-grid">
+            {/* Quotation Lines Panel */}
+            <section className="panel portal-lines-panel">
+              <div className="panel-heading">
+                <div>
+                  <span className="eyebrow">QUOTATION LINES</span>
+                  <h2>{customerName} · {activeQuotation?.id?.slice(0, 16) || 'Q—'}</h2>
+                </div>
+                <span className="portal-amount">{formatINR(totalAmount)}</span>
+              </div>
+
+              <div className="portal-line-table">
+                <div className="portal-line-head">
+                  <span>Line Item</span>
+                  <span>Qty &amp; Pricing (₹ INR)</span>
+                </div>
+
+                {lines.length === 0 ? (
+                  <div style={{ padding: '20px', color: '#888', textAlign: 'center' }}>
+                    {activeQuotation ? 'No line items in this quotation yet.' : 'No quotation available. Contact your sales rep.'}
+                  </div>
+                ) : (
+                  lines.map((line) => {
+                    const unitPrice = Number(line.unitPrice) || 0;
+                    const disc = line.discountPct || 0;
+                    const lineTotal = unitPrice * line.qty * (1 - disc / 100);
+                    return (
+                      <div className="portal-line-row" key={line.id}>
+                        <span>
+                          <strong>
+                            {line.product?.name || 'Product'} (×{line.qty})
+                          </strong>
+                          <small>
+                            {line.product?.category || 'Item'} · {formatINR(unitPrice)} each
+                            {disc > 0 ? ` · ${disc}% disc.` : ''}
+                          </small>
+                        </span>
+                        <span style={{ fontWeight: 600 }}>{formatINR(lineTotal)}</span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="portal-total">
+                <span>Total (incl. discounts)</span>
+                <strong>{formatINR(totalAmount)}</strong>
+              </div>
+            </section>
+
+            {/* Request Change / Confirm Panel */}
+            <section className="panel portal-request-panel">
               <div>
-                <span className="eyebrow">QUOTATION LINES</span>
-                <h2>Acme Corp · Q-1042</h2>
+                <span className="eyebrow">REQUEST A CHANGE</span>
+                <h2>Submit Counter Proposal</h2>
               </div>
-              <span className="portal-amount">$12,400</span>
-            </div>
 
-            <div className="portal-line-table">
-              <div className="portal-line-head">
-                <span>Line Item</span>
-                <span>Line Discussion &amp; Notes</span>
-              </div>
-              <div className="portal-line-row">
-                <span>
-                  <strong>Laptop Pro 14 (x8)</strong>
-                  <small>Hardware · $1,140 each</small>
-                </span>
-                <span>Can we increase discount from 5% to 15%?</span>
-              </div>
-              <div className="portal-line-row">
-                <span>
-                  <strong>Onsite Setup (x2)</strong>
-                  <small>Services · $450 each</small>
-                </span>
-                <span>Can deployment date be moved to October?</span>
-              </div>
-            </div>
+              <form onSubmit={handleSubmitNegotiation} style={{ marginTop: '16px' }}>
+                <label className="field portal-field">
+                  <span>Counter discount proposal (%)</span>
+                  <input
+                    value={counterDiscount}
+                    onChange={(event) => setCounterDiscount(event.target.value)}
+                    placeholder="e.g. 12"
+                    type="number"
+                    min="0"
+                    max="100"
+                    disabled={isConfirmed}
+                  />
+                </label>
 
-            <div className="portal-total">
-              <span>Current Quote Total</span>
-              <strong>$12,400</strong>
-            </div>
-          </section>
+                <label className="field portal-field">
+                  <span>Message to your account team</span>
+                  <textarea
+                    value={message}
+                    onChange={(event) => setMessage(event.target.value)}
+                    placeholder="Add context, ask about delivery timelines, volume benefits..."
+                    rows={4}
+                    disabled={isConfirmed}
+                  />
+                </label>
 
-          {/* Request Change Form Panel */}
-          <section className="panel portal-request-panel">
-            <div>
-              <span className="eyebrow">REQUEST A CHANGE</span>
-              <h2>Submit Counter Proposal</h2>
-            </div>
+                <div className="portal-request-actions">
+                  <button
+                    className="button"
+                    type="submit"
+                    disabled={isConfirmed || submitting || !activeQuotation}
+                  >
+                    <RotateCcw size={15} /> {submitting ? 'Submitting…' : 'Submit Counter Proposal'}
+                  </button>
 
-            <form onSubmit={handleSubmit} style={{ marginTop: '16px' }}>
-              <label className="field portal-field">
-                <span>Counter discount proposal %</span>
-                <input
-                  value={counterDiscount}
-                  onChange={(event) => setCounterDiscount(event.target.value)}
-                  placeholder="e.g. 18"
-                  type="number"
-                  min="0"
-                  max="100"
-                />
-              </label>
-
-              <label className="field portal-field">
-                <span>Requested delivery date</span>
-                <input
-                  value={deliveryDate}
-                  onChange={(event) => setDeliveryDate(event.target.value)}
-                  type="date"
-                />
-              </label>
-
-              <label className="field portal-field">
-                <span>Message to your account team</span>
-                <textarea
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Add context or questions for your sales rep..."
-                  rows={4}
-                />
-              </label>
-
-              <div className="portal-request-actions">
-                <button className="button" type="submit">
-                  <RotateCcw size={15} /> Submit Counter Proposal
-                </button>
-                <button
-                  type="button"
-                  className="button button-success"
-                  disabled={confirmed}
-                  onClick={onConfirm}
-                >
-                  <Check size={15} />{' '}
-                  {confirmed ? 'Quotation confirmed' : 'Confirm & Accept Quote'}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>}
+                  <button
+                    type="button"
+                    className={`button ${isConfirmed ? 'button-success' : 'button-success'}`}
+                    disabled={isConfirmed || confirming === activeQuotation?.id || !activeQuotation}
+                    onClick={handleConfirm}
+                    style={{ gap: '6px' }}
+                  >
+                    {isConfirmed ? (
+                      <>
+                        <CheckCircle2 size={16} style={{ color: '#22c55e' }} />
+                        Quotation Confirmed ✔
+                      </>
+                    ) : confirming === activeQuotation?.id ? (
+                      <>
+                        <Check size={15} /> Confirming…
+                      </>
+                    ) : (
+                      <>
+                        <Check size={15} /> Confirm &amp; Accept Quote
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        )}
 
         <div className="operations-note portal-note" style={{ marginTop: '20px' }}>
           <Sparkles size={15} />
           <span>
-            Automated Governance: Counter proposal discounts above customer tier thresholds (&gt;15%) will automatically trigger manager &amp; finance re-approval.
+            Automated Governance: Counter proposals above your tier discount ceiling (&gt;15% for Gold,
+            &gt;10% for Silver, &gt;5% for Bronze) automatically trigger manager &amp; finance re-approval.
+            All amounts are in Indian Rupees (₹ INR).
           </span>
         </div>
       </div>

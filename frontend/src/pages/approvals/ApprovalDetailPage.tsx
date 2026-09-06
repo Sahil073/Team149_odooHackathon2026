@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Check, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, CheckCircle2, ShieldCheck } from 'lucide-react';
 import type { ApprovalItem } from '../../types';
 
 export function ApprovalDetailPage({
@@ -58,10 +58,23 @@ export function ApprovalDetailPage({
         </div>
       </section>
       {canDecide ? <div className="detail-actions">
-        <button className="button button-success" disabled={isClosed} onClick={onApprove}><Check size={16} /> {isApproved ? 'Approved' : 'Approve'}</button>
+        <button
+          className="button button-success"
+          disabled={isClosed}
+          onClick={onApprove}
+          style={{ gap: '6px', position: 'relative' }}
+        >
+          {isApproved ? (
+            <><CheckCircle2 size={16} style={{ color: '#22c55e' }} /> Approved ✔</>
+          ) : (
+            <><Check size={16} /> Approve</>
+          )}
+        </button>
         <button className="button button-warning" disabled={isClosed} onClick={onReturn}>Return for revision</button>
-        <button className="button button-danger" disabled={isClosed} onClick={onReject}>{approval.status === 'Rejected' ? 'Rejected' : 'Reject'}</button>
-      </div> : <div className="view-only-note"><ShieldCheck size={15} /><span>Sales rep view only. This decision is owned by {approval.assignedTo === '—' ? 'the approval chain' : approval.assignedTo}.</span></div>}
+        <button className="button button-danger" disabled={isClosed} onClick={onReject}>
+          {approval.status === 'Rejected' ? '✗ Rejected' : 'Reject'}
+        </button>
+      </div> : <div className="view-only-note"><ShieldCheck size={15} /><span>Sales Rep view only. Decision owned by {approval.assignedTo === '—' ? 'the approval chain' : approval.assignedTo}.</span></div>}
     </div>
   );
 }

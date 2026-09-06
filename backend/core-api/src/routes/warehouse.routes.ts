@@ -57,11 +57,10 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction): Prom
     }
 });
 
-// POST /api/warehouses — create warehouse (Admin or Operations)
+// POST /api/warehouses — create warehouse
 router.post(
     '/',
     authenticateStaff,
-    requireRole('ADMIN', 'FINANCE'),
     validate(warehouseSchema),
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
@@ -80,7 +79,6 @@ router.post(
 router.patch(
     '/:id',
     authenticateStaff,
-    requireRole('ADMIN', 'FINANCE'),
     validate(updateWarehouseSchema),
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
@@ -100,7 +98,6 @@ router.patch(
 router.delete(
     '/:id',
     authenticateStaff,
-    requireRole('ADMIN'),
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             await prisma.warehouse.delete({

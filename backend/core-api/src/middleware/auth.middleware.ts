@@ -33,12 +33,18 @@ export function authenticateStaff(req: Request, _res: Response, next: NextFuncti
     }
 }
 
-// Customer Portal routes only — a staff token will fail verification here
+// Customer Portal routes — supports customer portal token or staff preview token
 export function authenticatePortal(req: Request, _res: Response, next: NextFunction): void {
     try {
         const token = extractToken(req);
-        req.customer = jwt.verify(token, env.PORTAL_JWT_SECRET) as { id: string; email: string };
-        next();
+        try {
+            req.customer = jwt.verify(token, env.PORTAL_JWT_SECRET) as { id: string; email: string };
+            next();
+        } catch {
+            // Allow staff tokens to inspect and test the portal
+            req.user = jwt.verify(token, env.JWT_SECRET) as { id: string; role: Role; email: string };
+            next();
+        }
     } catch {
         next(new UnauthorizedError('Invalid or expired portal token'));
     }

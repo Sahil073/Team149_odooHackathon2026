@@ -16,6 +16,7 @@ type TopbarProps = {
   role: Role;
   userName?: string;
   onNavigate?: (screen: Screen) => void;
+  initialNotifications?: NotificationItem[];
 };
 
 export function Topbar({
@@ -28,55 +29,21 @@ export function Topbar({
   role,
   userName = 'Team',
   onNavigate,
+  initialNotifications = [],
 }: TopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 'notif-1',
-      title: 'Quotation Approval Required',
-      message: 'QT-2026-004 has 18% discount requested by Rep, exceeding Gold tier ceiling.',
-      timestamp: '5 min ago',
-      read: false,
-      type: 'approval',
-      screen: 'approvals',
-    },
-    {
-      id: 'notif-2',
-      title: 'Deal Health Warning',
-      message: 'Acme Corp deal flagged for margin erosion (12.4% below floor).',
-      timestamp: '25 min ago',
-      read: false,
-      type: 'health',
-      screen: 'deal-health',
-    },
-    {
-      id: 'notif-3',
-      title: 'Split Shipment Recommended',
-      message: 'Order ORD-849 stock split available between Dallas and Chicago hubs.',
-      timestamp: '1 hour ago',
-      read: false,
-      type: 'fulfillment',
-      screen: 'fulfillment',
-    },
-    {
-      id: 'notif-4',
-      title: 'Invoice Payment Received',
-      message: 'Invoice INV-1002 ($4,500.00) recorded and reconciled via bank transfer.',
-      timestamp: '2 hours ago',
-      read: true,
-      type: 'billing',
-      screen: 'invoices',
-    },
-    {
-      id: 'notif-5',
-      title: 'Audit Log Recorded',
-      message: 'System auto-applied proration rule to Enterprise annual plan.',
-      timestamp: 'Yesterday',
-      read: true,
-      type: 'system',
-      screen: 'audit-trail',
-    },
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
+  const [prevInitial, setPrevInitial] = useState<NotificationItem[]>(initialNotifications);
+
+  // Sync when parent passes new dynamic notifications (prepend unseen ones)
+  if (initialNotifications !== prevInitial) {
+    setPrevInitial(initialNotifications);
+    setNotifications((prev) => {
+      const existingIds = new Set(prev.map((n) => n.id));
+      const newOnes = initialNotifications.filter((n) => !existingIds.has(n.id));
+      return newOnes.length > 0 ? [...newOnes, ...prev] : prev;
+    });
+  }
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -97,7 +64,7 @@ export function Topbar({
   const handleClearAll = () => {
     setNotifications([]);
   };
-  const displayName = role === 'customer' ? 'Acme Corporation' : userName;
+  const displayName = role === 'customer' ? userName || 'Portal User' : userName;
   const initials = getInitials(displayName);
   const screenLabels: Record<Screen, string> = {
     dashboard: 'Overview',

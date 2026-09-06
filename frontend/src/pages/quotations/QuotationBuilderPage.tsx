@@ -282,10 +282,10 @@ export function QuotationBuilderPage({
           <div className="builder-summary">
             <span>Subtotal</span>
             <strong>
-              $
-              {lines
-                .reduce((sum, line) => sum + line.price * line.quantity * (1 - line.discount / 100), 0)
-                .toLocaleString()}
+              {(() => {
+                const subtotal = lines.reduce((sum, line) => sum + line.price * line.quantity * (1 - line.discount / 100), 0);
+                return `₹${subtotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+              })()}
             </strong>
             <label>
               Order discount{' '}
@@ -301,7 +301,7 @@ export function QuotationBuilderPage({
               </span>
             </label>
             <span className="builder-total-label">Total</span>
-            <strong className="builder-total">${total.toLocaleString()}</strong>
+            <strong className="builder-total">₹{total.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong>
           </div>
           {lines.some((line) => line.discount > 10) && (
             <div className="risk-callout">
