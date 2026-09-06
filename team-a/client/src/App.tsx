@@ -29,9 +29,11 @@ import { CustomerPortalPage } from './pages/customer/CustomerPortalPage';
 
 import {
   clearToken,
+  getStoredUser,
   hasToken,
   login,
   saveToken,
+  saveUser,
   signup,
   getQuotations,
   createQuotation as apiCreateQuotation,
