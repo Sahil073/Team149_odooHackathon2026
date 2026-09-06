@@ -1,4 +1,4 @@
-import { Bell, Check, CheckCheck, LogOut, Menu, Plus, RefreshCw, Settings2, X } from 'lucide-react';
+import { Bell, Check, CheckCheck, Clock, LogOut, Menu, Plus, RefreshCw, Settings2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { BrandMark } from '../BrandMark';
 import type { Role, Screen } from '../../types';
@@ -71,6 +71,8 @@ type TopbarProps = {
   onLogout: () => void;
   role: Role;
   userName: string;
+  sessionTimeLeft?: string;
+  sessionWarning?: boolean;
 };
 
 export function Topbar({
@@ -82,6 +84,8 @@ export function Topbar({
   onLogout,
   role,
   userName,
+  sessionTimeLeft,
+  sessionWarning = false,
 }: TopbarProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
@@ -316,6 +320,17 @@ export function Topbar({
             </div>
           )}
         </div>
+
+        {/* Session clock */}
+        {sessionTimeLeft && (
+          <div
+            className={`session-clock ${sessionWarning ? 'session-clock-warn' : ''}`}
+            title={sessionWarning ? 'Session expiring soon!' : 'Session time remaining'}
+          >
+            <Clock size={12} />
+            <span>{sessionTimeLeft}</span>
+          </div>
+        )}
 
         <span className="topbar-divider" />
 

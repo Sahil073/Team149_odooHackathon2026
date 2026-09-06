@@ -3,6 +3,8 @@ import { CheckCircle2, X } from 'lucide-react';
 import { Sidebar } from './components/layout/Sidebar';
 import { Topbar } from './components/layout/Topbar';
 import { QuoteDrawer } from './components/common/QuoteDrawer';
+import { SessionWarning } from './components/common/SessionWarning';
+import { useSessionTimer } from './lib/useSessionTimer';
 
 import { AuthScreen } from './pages/auth/AuthScreen';
 import { Dashboard } from './pages/dashboard/Dashboard';
@@ -507,6 +509,11 @@ function App() {
     setSelectedDetailQuote(null);
   }
 
+  const { showWarning, formatted: sessionTimeLeft, extendSession } = useSessionTimer(
+    authenticated,
+    handleLogout,
+  );
+
   function toApiRole(roleToMap: Role): 'SALES_REP' | 'SALES_MANAGER' | 'FINANCE' | 'ADMIN' {
     if (roleToMap === 'manager') return 'SALES_MANAGER';
     if (roleToMap === 'finance') return 'FINANCE';
@@ -576,6 +583,8 @@ function App() {
           onLogout={handleLogout}
           role={role}
           userName={userName}
+          sessionTimeLeft={sessionTimeLeft}
+          sessionWarning={showWarning}
         />
         <main className="page-content">
           {screen === 'dashboard' ? (
@@ -763,6 +772,13 @@ function App() {
             <X size={15} />
           </button>
         </div>
+      )}
+      {showWarning && (
+        <SessionWarning
+          timeLeft={sessionTimeLeft}
+          onExtend={extendSession}
+          onLogout={handleLogout}
+        />
       )}
     </div>
   );
