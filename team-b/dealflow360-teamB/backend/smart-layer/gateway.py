@@ -56,6 +56,8 @@ gateway = FastAPI(
     description="Unified API gateway bridging Discount Risk, Upsell Ranking, Deal Health, and AI Win Prediction.",
     version="1.0.0",
 )
+app = gateway
+
 
 gateway.add_middleware(
     CORSMiddleware,
