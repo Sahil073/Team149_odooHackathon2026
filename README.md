@@ -197,6 +197,6 @@ The application is deployed across Render cloud services:
 
 | Component | Service Name | Runtime | Root Directory | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **Core API** | `dealflow360-backend` | Node 20 | `backend/core-api` | [Live URL](https://team149odoo.netlify.app/) |
-| **Smart Layer** | `dealflow360-smart-layer` | Python 3.11.9 | `backend/smart-layer` | [Live URL](https://dealflow360-smart-layer.onrender.com) |
+| **Live Website** | `dealflow360-frontend` | React | `frontend/` | [Live URL](https://team149odoo.netlify.app/) |
+| **Backend** | `dealflow360-backend` | Python 3.11.9 + Node 20 | `backend/` | [Live URL](https://dealflow360-smart-layer.onrender.com) |
 | **Database** | `dealflow360-db` | PostgreSQL 16 | — | Live |
