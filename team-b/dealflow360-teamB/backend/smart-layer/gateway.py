@@ -77,6 +77,10 @@ def launch_workers():
         import threading
         # 1. Risk Engine Listener
         try:
+            sys.modules["models"] = risk_models
+            sys.modules["scoring"] = risk_scoring
+            risk_publisher = _load_module("risk_publisher", risk_dir / "publisher.py")
+            sys.modules["publisher"] = risk_publisher
             risk_listener = _load_module("risk_listener", risk_dir / "listener.py")
             t_risk = threading.Thread(target=risk_listener.start_listener, args=(LATEST_SCORES,), daemon=True)
             t_risk.start()
@@ -86,6 +90,10 @@ def launch_workers():
 
         # 2. Upsell Engine Listener
         try:
+            sys.modules["models"] = upsell_models
+            sys.modules["ranking"] = upsell_ranking
+            upsell_publisher = _load_module("upsell_publisher", upsell_dir / "publisher.py")
+            sys.modules["publisher"] = upsell_publisher
             upsell_listener = _load_module("upsell_listener", upsell_dir / "listener.py")
             t_upsell = threading.Thread(target=upsell_listener.start_listener, args=(LATEST_SUGGESTIONS,), daemon=True)
             t_upsell.start()
@@ -95,6 +103,12 @@ def launch_workers():
 
         # 3. Deal Health Listener & Scheduler
         try:
+            sys.modules["models"] = health_models
+            sys.modules["db"] = health_db
+            health_detection = _load_module("health_detection", health_dir / "detection.py")
+            sys.modules["detection"] = health_detection
+            health_publisher = _load_module("health_publisher", health_dir / "publisher.py")
+            sys.modules["publisher"] = health_publisher
             health_listener = _load_module("health_listener", health_dir / "listener.py")
             health_scheduler = _load_module("health_scheduler", health_dir / "scheduler.py")
             t_health = threading.Thread(target=health_listener.start_listener, daemon=True)
@@ -111,7 +125,9 @@ def launch_workers():
 
 
 @gateway.get("/")
+@gateway.head("/")
 @gateway.get("/health")
+@gateway.head("/health")
 def liveness():
     return {
         "status": "ok",
@@ -128,6 +144,7 @@ def liveness():
             "/api/ai/win-probability",
         ],
     }
+
 
 
 # -----------------------------------------------------------------------------

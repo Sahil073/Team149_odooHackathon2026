@@ -44,40 +44,45 @@ def start_listener(cache: dict):
     (see app.py's startup hook). In a full microservice split, this would
     instead be a Redis GET/SET or a small DB table.
     """
-    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
-    pubsub = r.pubsub()
-    pubsub.subscribe(CHANNEL_QUOTATION_UPDATED)
-    pubsub = get_redis_subscriber(CHANNEL_QUOTATION_UPDATED)
+    try:
+        pubsub = get_redis_subscriber(CHANNEL_QUOTATION_UPDATED)
+        print(f"[risk-engine] Subscribed to '{CHANNEL_QUOTATION_UPDATED}'. Waiting for events...")
+    except Exception as e:
+        print(f"[risk-engine] Note: Redis subscriber unavailable ({e}). Background event listener inactive.")
+        return
 
-    print(f"[risk-engine] Subscribed to '{CHANNEL_QUOTATION_UPDATED}'. Waiting for events...")
+    try:
+        for message in pubsub.listen():
+            if message["type"] != "message":
+                continue
 
-    for message in pubsub.listen():
-        if message["type"] != "message":
-            continue
+            raw_payload = message["data"]
 
-        raw_payload = message["data"]
+            try:
+                payload_dict = json.loads(raw_payload)
+                event = QuotationUpdatedEvent(**payload_dict)
+            except Exception as e:
+                # Fail loud in logs, but never crash the listener — one bad
+                # event must not take down the whole service (per ICD §5
+                # fallback philosophy: the smart layer being flaky must never
+                # block or break the core transaction, including itself).
+                print(f"[risk-engine] ERROR: failed to parse/validate event: {e}")
+                continue
 
-        try:
-            payload_dict = json.loads(raw_payload)
-            event = QuotationUpdatedEvent(**payload_dict)
-        except Exception as e:
-            # Fail loud in logs, but never crash the listener — one bad
-            # event must not take down the whole service (per ICD §5
-            # fallback philosophy: the smart layer being flaky must never
-            # block or break the core transaction, including itself).
-            print(f"[risk-engine] ERROR: failed to parse/validate event: {e}")
-            continue
+            try:
+                result = compute_blended_risk_score(event)
+                publish_risk_score_computed(result)
+                cache[event.quotationId] = result
+                print(f"[risk-engine] Scored quotationId={event.quotationId}: "
+                      f"blendedRiskScore={result.blendedRiskScore}, "
+                      f"requiresApproval={result.requiresApproval}")
+            except Exception as e:
+                print(f"[risk-engine] ERROR: scoring/publishing failed for "
+                      f"quotationId={event.quotationId}: {e}")
 
-        try:
-            result = compute_blended_risk_score(event)
-            publish_risk_score_computed(result)
-            cache[event.quotationId] = result
-            print(f"[risk-engine] Scored quotationId={event.quotationId}: "
-                  f"blendedRiskScore={result.blendedRiskScore}, "
-                  f"requiresApproval={result.requiresApproval}")
-        except Exception as e:
-            print(f"[risk-engine] ERROR: scoring/publishing failed for "
-                  f"quotationId={event.quotationId}: {e}")
+    except Exception as e:
+        print(f"[risk-engine] Listener connection closed: {e}")
+
 
 
 if __name__ == "__main__":

@@ -28,36 +28,40 @@ def _handle_flag(flag) -> None:
 
 
 def start_listener():
-    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
-    pubsub = r.pubsub()
-    pubsub.subscribe(CHANNEL_QUOTATION_UPDATED)
+    try:
+        pubsub = get_redis_subscriber(CHANNEL_QUOTATION_UPDATED)
+        print(f"[deal-health] Subscribed to '{CHANNEL_QUOTATION_UPDATED}'. Waiting for events...")
+    except Exception as e:
+        print(f"[deal-health] Note: Redis subscriber unavailable ({e}). Background event listener inactive.")
+        return
 
-    pubsub = get_redis_subscriber(CHANNEL_QUOTATION_UPDATED)
-    print(f"[deal-health] Subscribed to '{CHANNEL_QUOTATION_UPDATED}'. Waiting for events...")
+    try:
+        for message in pubsub.listen():
+            if message["type"] != "message":
+                continue
 
-    for message in pubsub.listen():
-        if message["type"] != "message":
-            continue
+            try:
+                payload_dict = json.loads(message["data"])
+                event = QuotationUpdatedEvent(**payload_dict)
+            except Exception as e:
+                print(f"[deal-health] ERROR: failed to parse/validate event: {e}")
+                continue
 
-        try:
-            payload_dict = json.loads(message["data"])
-            event = QuotationUpdatedEvent(**payload_dict)
-        except Exception as e:
-            print(f"[deal-health] ERROR: failed to parse/validate event: {e}")
-            continue
+            try:
+                state = db.upsert_quote_state(event)
+                rep_baseline = db.get_rep_baseline_avg_discount(state.salesRepId, state.quotationId)
+                now = datetime.now(timezone.utc)
 
-        try:
-            state = db.upsert_quote_state(event)
-            rep_baseline = db.get_rep_baseline_avg_discount(state.salesRepId, state.quotationId)
-            now = datetime.now(timezone.utc)
+                flag = check_discount_anomaly(state, rep_baseline, now)
+                if flag:
+                    _handle_flag(flag)
 
-            flag = check_discount_anomaly(state, rep_baseline, now)
-            if flag:
-                _handle_flag(flag)
+                print(f"[deal-health] Tracked quotationId={event.quotationId}, avgDiscount={state.avgDiscountPct:.1f}%")
+            except Exception as e:
+                print(f"[deal-health] ERROR: processing failed for quotationId={event.quotationId}: {e}")
+    except Exception as e:
+        print(f"[deal-health] Listener connection closed: {e}")
 
-            print(f"[deal-health] Tracked quotationId={event.quotationId}, avgDiscount={state.avgDiscountPct:.1f}%")
-        except Exception as e:
-            print(f"[deal-health] ERROR: processing failed for quotationId={event.quotationId}: {e}")
 
 
 if __name__ == "__main__":

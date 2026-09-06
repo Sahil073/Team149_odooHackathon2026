@@ -57,19 +57,23 @@ def publish_event(
     client: Optional[redis.Redis] = None,
     log_prefix: str = "",
 ) -> None:
-    r = client or get_client()
+    try:
+        r = client or get_client()
 
-    if isinstance(data, BaseModel):
-        payload = data.model_dump_json()
-    elif isinstance(data, dict):
-        import json
-        payload = json.dumps(data)
-    else:
-        payload = str(data)
+        if isinstance(data, BaseModel):
+            payload = data.model_dump_json()
+        elif isinstance(data, dict):
+            import json
+            payload = json.dumps(data)
+        else:
+            payload = str(data)
 
-    r.publish(channel, payload)
-    if log_prefix:
-        print(f"{log_prefix} Published on '{channel}': {payload}")
+        r.publish(channel, payload)
+        if log_prefix:
+            print(f"{log_prefix} Published on '{channel}': {payload}")
+    except Exception as exc:
+        print(f"[shared.redis] Note: Redis publish skipped on channel '{channel}' ({exc})")
+
 
 
 def check_redis_connection(client: Optional[redis.Redis] = None) -> bool:
