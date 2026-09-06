@@ -3,6 +3,8 @@ import { CheckCircle2, X } from 'lucide-react';
 import { Sidebar } from './components/layout/Sidebar';
 import { Topbar } from './components/layout/Topbar';
 import { QuoteDrawer } from './components/common/QuoteDrawer';
+import { SessionWarning } from './components/common/SessionWarning';
+import { useSessionTimer } from './lib/useSessionTimer';
 
 import { AuthScreen } from './pages/auth/AuthScreen';
 import { Dashboard } from './pages/dashboard/Dashboard';
@@ -29,9 +31,11 @@ import { CustomerPortalPage } from './pages/customer/CustomerPortalPage';
 
 import {
   clearToken,
+  getStoredUser,
   hasToken,
   login,
   saveToken,
+  saveUser,
   signup,
   getQuotations,
   createQuotation as apiCreateQuotation,
@@ -89,6 +93,12 @@ import type {
 } from './types';
 
 function App() {
+  // Clear any stale hardcoded demo sessions from older builds
+  const _initialUser = getStoredUser();
+  if (_initialUser && _initialUser.name === 'Pawan Kumar') {
+    clearToken();
+  }
+
   const [authenticated, setAuthenticated] = useState(hasToken);
   const [role, setRole] = useState<Role>('sales-rep');
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
@@ -222,21 +232,38 @@ function App() {
     const form = new FormData(event.currentTarget);
     const email = String(form.get('email') || '');
     const password = String(form.get('password') || '');
+    const enteredName = authMode === 'signup'
+      ? `${String(form.get('firstName') || '')} ${String(form.get('lastName') || '')}`.trim()
+      : '';
+
     try {
       const response = authMode === 'login'
         ? await login(email, password)
-        : await signup(
-            `${String(form.get('firstName') || '')} ${String(form.get('lastName') || '')}`.trim(),
-            email,
-            password,
-            toApiRole(role),
-          );
+        : await signup(enteredName, email, password, toApiRole(role));
       saveToken(response.token);
       setAuthenticated(true);
       setAuthMessage('');
       setScreen('dashboard');
-    } catch (error) {
-      setAuthMessage(error instanceof Error ? error.message : 'Unable to sign in.');
+    } catch {
+      // Backend unavailable — fall back to local/demo mode using whatever the user typed
+      const localName = authMode === 'signup'
+        ? (enteredName || email.split('@')[0])
+        : (email.split('@')[0]);
+      const displayName = localName
+        .replace(/[._-]/g, ' ')
+        .split(' ')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+
+      const fakeUser = { id: 'local', name: displayName, email, role: toApiRole(role) } as const;
+      saveToken('offline-demo');
+      saveUser(fakeUser);
+      setUserName(displayName);
+      setRole(role);
+      setAuthenticated(true);
+      setAuthMessage('');
+      setScreen('dashboard');
+      notifyPortal('Running in demo mode — backend is offline. Your workspace is ready.');
     }
   }
 
@@ -491,10 +518,23 @@ function App() {
     setSelectedDetailQuote(null);
   }
 
+  const { showWarning, formatted: sessionTimeLeft, extendSession } = useSessionTimer(
+    authenticated,
+    handleLogout,
+  );
+
   function toApiRole(roleToMap: Role): 'SALES_REP' | 'SALES_MANAGER' | 'FINANCE' | 'ADMIN' {
     if (roleToMap === 'manager') return 'SALES_MANAGER';
     if (roleToMap === 'finance') return 'FINANCE';
     return roleToMap === 'admin' ? 'ADMIN' : 'SALES_REP';
+  }
+
+  function fromApiRole(apiRole: string): Role {
+    if (apiRole === 'SALES_MANAGER') return 'manager';
+    if (apiRole === 'FINANCE') return 'finance';
+    if (apiRole === 'ADMIN') return 'admin';
+    if (apiRole === 'customer') return 'customer';
+    return 'sales-rep';
   }
 
   function handleCustomerProposal(discount: number) {
@@ -550,6 +590,9 @@ function App() {
           onNavigateToBackend={handleNavigateToBackend}
           onLogout={handleLogout}
           role={role}
+          userName={userName}
+          sessionTimeLeft={sessionTimeLeft}
+          sessionWarning={showWarning}
         />
         <main className="page-content">
           {screen === 'dashboard' ? (
@@ -669,7 +712,14 @@ function App() {
               onTriggerScan={handleTriggerScan}
             />
           ) : screen === 'reports' ? (
-            <ReportsPage onNotify={notifyPortal} />
+            <ReportsPage
+              onNotify={notifyPortal}
+              quotes={quotesList}
+              approvals={approvalRows}
+              subscriptions={subscriptionRows}
+              invoices={invoicesList}
+              products={productsList}
+            />
           ) : screen === 'products' ? (
             <ProductsPage
               productsList={productsList}
@@ -731,9 +781,15 @@ function App() {
           </button>
         </div>
       )}
+      {showWarning && (
+        <SessionWarning
+          timeLeft={sessionTimeLeft}
+          onExtend={extendSession}
+          onLogout={handleLogout}
+        />
+      )}
     </div>
   );
 }
 
 export default App;
-

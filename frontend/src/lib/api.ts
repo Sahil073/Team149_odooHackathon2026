@@ -27,6 +27,7 @@ const API_BASE_URL = (
 ).replace(/\/$/, '');
 
 const TOKEN_KEY = 'dealflow.accessToken';
+const USER_KEY = 'dealflow.user';
 
 type ApiErrorBody = { message?: string; error?: string };
 
@@ -83,10 +84,24 @@ export function saveToken(token: string) {
 
 export function clearToken() {
   window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(USER_KEY);
 }
 
 export function hasToken() {
   return Boolean(window.localStorage.getItem(TOKEN_KEY));
+}
+
+export function saveUser(user: AuthResponse['user']) {
+  window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function getStoredUser() {
+  try {
+    const raw = window.localStorage.getItem(USER_KEY);
+    return raw ? (JSON.parse(raw) as AuthResponse['user']) : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Products ──────────────────────────────────────────────────────────────
