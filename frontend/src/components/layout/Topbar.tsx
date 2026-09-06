@@ -3,6 +3,7 @@ import { Bell, LogOut, Menu, Plus, RefreshCw, Search, Settings2 } from 'lucide-r
 import { BrandMark } from '../BrandMark';
 import { getInitials } from '../../lib/utils';
 import { NotificationsPopover, type NotificationItem } from '../common/NotificationsPopover';
+import { SessionTimer } from '../common/SessionTimer';
 import type { Role, Screen } from '../../types';
 
 type TopbarProps = {
@@ -185,6 +186,9 @@ export function Topbar({
             onClearAll={handleClearAll}
           />
         </div>
+
+        {/* Live Session Countdown & Warning Timer */}
+        <SessionTimer onLogout={onLogout} />
 
         <span className="topbar-divider" />
 

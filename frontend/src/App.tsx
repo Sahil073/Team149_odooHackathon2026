@@ -214,7 +214,7 @@ function App() {
             localStorage.setItem('dealflow.userName', res.data.name);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [authenticated]);
 
@@ -268,7 +268,7 @@ function App() {
             known[emailOrUsername.split('@')[0].toLowerCase()] = displayName;
           }
           localStorage.setItem('dealflow.usersCache', JSON.stringify(known));
-        } catch {}
+        } catch { }
       } else {
         const loginEmail = emailOrUsername.includes('@')
           ? emailOrUsername
@@ -285,7 +285,7 @@ function App() {
           if (cached) {
             displayName = cached;
           }
-        } catch {}
+        } catch { }
 
         if (!displayName && response.user?.name && !['usr-demo', 'usr-demo-new', 'Demo User', 'DEMO USER'].includes(response.user.name)) {
           displayName = response.user.name;
@@ -336,8 +336,8 @@ function App() {
         status === 'Approved'
           ? `${selectedApproval.id} approved and released to fulfillment.`
           : status === 'Rejected'
-          ? `${selectedApproval.id} rejected and removed from the approval queue.`
-          : `${selectedApproval.id} returned for revision.`;
+            ? `${selectedApproval.id} rejected and removed from the approval queue.`
+            : `${selectedApproval.id} returned for revision.`;
       notifyPortal(message);
       setScreen('approvals');
       await loadAllData();
@@ -393,8 +393,8 @@ function App() {
         cat === 'SUBSCRIPTIONS' || cat === 'SUBSCRIPTION'
           ? 'SUBSCRIPTIONS'
           : cat === 'SERVICES' || cat === 'SERVICE'
-          ? 'SERVICES'
-          : 'HARDWARE';
+            ? 'SERVICES'
+            : 'HARDWARE';
 
       await apiCreateProduct({
         name: newProduct.name,
@@ -419,8 +419,8 @@ function App() {
         cat === 'SUBSCRIPTIONS' || cat === 'SUBSCRIPTION'
           ? 'SUBSCRIPTIONS'
           : cat === 'SERVICES' || cat === 'SERVICE'
-          ? 'SERVICES'
-          : 'HARDWARE';
+            ? 'SERVICES'
+            : 'HARDWARE';
 
       await apiUpdateProduct(updatedProduct.id, {
         name: updatedProduct.name,
@@ -740,7 +740,7 @@ function App() {
               onTriggerScan={handleTriggerScan}
             />
           ) : screen === 'reports' ? (
-            <ReportsPage onNotify={notifyPortal} />
+            <ReportsPage onNotify={notifyPortal} quotes={quotesList} />
           ) : screen === 'products' ? (
             <ProductsPage
               productsList={productsList}
