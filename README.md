@@ -56,6 +56,29 @@ flowchart TB
 
 ---
 
+## Architecture & Design Documentation
+
+Full design references for evaluators and contributors — high-level design and data flow are maintained as living Miro boards; low-level design and the database schema are captured below as diagrams.
+
+- **High-Level Design (HLD):** [View on Miro](https://miro.com/app/board/uXjVHqxHu9M=/?share_link_id=34674356287) — core platform vs. smart layer module boundaries and the event bus contract between them.
+- **Data Flow:** [View on Miro](https://miro.com/app/board/uXjVHqxNDTg=/?share_link_id=164381872530) — request lifecycle from quotation creation through risk scoring, approval, and fulfillment.
+
+**Low-Level Design — Module & Event Bus Wiring**
+
+Shows every Core Platform module and every Smart Layer engine, with arrows indicating which side publishes and which side consumes on the event bus.
+
+![Module and event bus wiring diagram](docs/assets/module-event-bus-wiring.png)
+
+**Database Schema (ERD)**
+
+Full entity-relationship diagram covering identity, product/pricing, quotation, approval, warehouse/fulfillment, billing, and smart-layer output tables.
+
+![Database ERD schema](docs/assets/erd-schema.png)
+
+> Diagram source images live in `docs/assets/`. If you update the schema or module wiring, re-export from Miro/your ERD tool and replace these files so the README stays in sync.
+
+---
+
 ## Directory Organization
 
 The repository is structured as an industry-standard monorepo separating concerns into `frontend`, `backend`, and `docs`:
@@ -98,6 +121,7 @@ Team149_odooHackathon2026/
 │   ├── architecture.md                # System design & cross-service communication
 │   ├── api-reference.md               # Complete REST API & Pub/Sub contract reference
 │   ├── setup-guide.md                 # Local and Cloud setup guide
+│   ├── assets/                        # HLD / LLD / ERD diagram images referenced above
 │   └── specifications/                # ICD & Execution Plan PDFs
 │
 ├── .gitignore                         # Monorepo gitignore
