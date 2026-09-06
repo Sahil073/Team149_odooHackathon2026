@@ -10,7 +10,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    rootDir: team-a/server
+    rootDir: backend/core-api
     buildCommand: npm install && npm run db:push && npm run build && npm run seed
     startCommand: npm start
     healthCheckPath: /health
@@ -37,3 +37,19 @@ services:
         value: http://localhost:3000
       - key: LOG_LEVEL
         value: info
+      - key: SMART_LAYER_BASE_URL
+        value: https://dealflow360-smart-layer.onrender.com
+
+  - type: web
+    name: dealflow360-smart-layer
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: backend/smart-layer
+    buildCommand: pip install -r requirements.txt && python train_win_predictor.py
+    startCommand: uvicorn gateway:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+

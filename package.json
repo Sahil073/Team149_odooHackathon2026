@@ -2,13 +2,17 @@
   "name": "team149-odoo-hackathon",
   "version": "1.0.0",
   "scripts": {
-    "dev": "npm --prefix team-a/server run dev",
-    "build": "npm --prefix team-a/server run build",
-    "start": "npm --prefix team-a/server start",
-    "seed": "npm --prefix team-a/server run seed",
-    "db:push": "npm --prefix team-a/server run db:push",
-    "test:e2e": "npm --prefix team-a/server run test:e2e",
-    "test:audit": "npm --prefix team-a/server run test:audit"
+    "dev:backend": "npm --prefix backend/core-api run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:smart-layer": "python backend/smart-layer/gateway.py",
+    "build:backend": "npm --prefix backend/core-api run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "start": "npm --prefix backend/core-api start",
+    "seed": "npm --prefix backend/core-api run seed",
+    "db:push": "npm --prefix backend/core-api run db:push",
+    "test:e2e": "npm --prefix backend/core-api run test:e2e",
+    "test:audit": "npm --prefix backend/core-api run test:audit",
+    "test:smart-layer": "python backend/smart-layer/test_gateway_integration.py"
   },
   "dependencies": {
     "cors": "^2.8.6",
