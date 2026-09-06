@@ -1,0 +1,16 @@
+{
+  "name": "dealflow360-load-tests",
+  "version": "1.0.0",
+  "description": "Grafana k6 load testing and benchmarking suite for DealFlow360",
+  "scripts": {
+    "test:smoke": "k6 run load-tests/scenarios/endpoint-smoke.js",
+    "test:baseline": "k6 run load-tests/scenarios/baseline.js",
+    "test:stress": "k6 run load-tests/scenarios/stress.js",
+    "bench:smoke": "node load-tests/runner.js smoke",
+    "bench:baseline": "node load-tests/runner.js baseline",
+    "bench:stress": "node load-tests/runner.js stress"
+  },
+  "keywords": ["k6", "load-testing", "benchmarking", "sre", "dealflow360"],
+  "author": "DealFlow360 Performance Engineering",
+  "license": "ISC"
+}
