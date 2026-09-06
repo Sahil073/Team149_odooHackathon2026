@@ -695,7 +695,14 @@ function App() {
               onNotify={notifyPortal}
             />
           ) : screen === 'reports' ? (
-            <ReportsPage onNotify={notifyPortal} />
+            <ReportsPage
+              onNotify={notifyPortal}
+              quotes={quotesList}
+              approvals={approvalRows}
+              subscriptions={subscriptionRows}
+              invoices={invoicesList}
+              products={productsList}
+            />
           ) : screen === 'products' ? (
             <ProductsPage
               productsList={productsList}
