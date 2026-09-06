@@ -20,6 +20,7 @@ import riskScoreRoutes from './risk-score.routes';
 import upsellSuggestionsRoutes from './upsell-suggestions.routes';
 import dealHealthRoutes from './deal-health.routes';
 import cronRoutes from './cron.routes';
+import aiRoutes from './ai.routes';
 
 export const routes = Router();
 
@@ -44,3 +45,4 @@ routes.use('/risk-score', riskScoreRoutes);
 routes.use('/upsell-suggestions', upsellSuggestionsRoutes);
 routes.use('/deal-health-flags', dealHealthRoutes);
 routes.use('/cron', cronRoutes);
+routes.use('/ai', aiRoutes);

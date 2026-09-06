@@ -1,13 +1,13 @@
 import { ArrowRight, ChevronDown, Filter, LayoutGrid, List, Plus, Search } from 'lucide-react';
 import { QuoteCard } from '../../components/ui/QuoteCard';
 import { StatusBadge } from '../../components/ui/StatusBadge';
-import { quotes } from '../../data/demoData';
 import type { Quote, QuoteStatus } from '../../types';
 
 const statusFilters: Array<'All' | QuoteStatus> = ['All', 'Draft', 'Pending approval', 'Approved', 'Negotiation', 'Confirmed'];
 
 type QuotationsPageProps = {
   quotes: Quote[];
+  allQuotes?: Quote[];
   search: string;
   statusFilter: 'All' | QuoteStatus;
   listView: 'board' | 'table';
@@ -20,6 +20,7 @@ type QuotationsPageProps = {
 
 export function QuotationsPage({
   quotes: visibleQuotes,
+  allQuotes,
   search,
   statusFilter,
   listView,
@@ -87,23 +88,23 @@ export function QuotationsPage({
       </div>
       <div className="quote-filter-row">
         <div className="filter-tabs">
-          {statusFilters.map((filter) => (
-            <button
-              key={filter}
-              className={statusFilter === filter ? 'filter-tab-active' : ''}
-              onClick={() => onStatusFilter(filter)}
-            >
-              {filter}
-              <span>
-                {filter === 'All'
-                  ? quotes.length
-                  : quotes.filter((quote) => quote.status === filter).length}
-              </span>
-            </button>
-          ))}
+          {statusFilters.map((filter) => {
+            const pool = allQuotes || visibleQuotes;
+            const count = filter === 'All' ? pool.length : pool.filter((quote) => quote.status === filter).length;
+            return (
+              <button
+                key={filter}
+                className={statusFilter === filter ? 'filter-tab-active' : ''}
+                onClick={() => onStatusFilter(filter)}
+              >
+                {filter}
+                <span>{count}</span>
+              </button>
+            );
+          })}
         </div>
         <span className="results-count">
-          {visibleQuotes.length} of {quotes.length} quotations
+          {visibleQuotes.length} of {(allQuotes || visibleQuotes).length} quotations
         </span>
       </div>
       {listView === 'board' ? (

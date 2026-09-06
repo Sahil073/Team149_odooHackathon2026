@@ -5,16 +5,17 @@ import { logger } from '../utils/logger';
 
 // 4 args is what makes Express treat this as an error handler — keep the signature exact
 export function errorMiddleware(err: unknown, req: Request, res: Response, _next: NextFunction): void {
-    if (err instanceof ValidationError) {
-        res.status(err.statusCode).json({ error: err.message, details: err.details });
+    const anyErr = err as any;
+    if (err instanceof ValidationError || anyErr?.name === 'ValidationError' || anyErr?.details !== undefined) {
+        res.status(anyErr?.statusCode || 422).json({ error: anyErr?.message || 'Validation failed', details: anyErr?.details });
         return;
     }
 
-    if (err instanceof AppError) {
-        if (!err.isOperational) {
+    if (err instanceof AppError || anyErr?.statusCode) {
+        if (!anyErr?.isOperational && anyErr?.statusCode === 500) {
             logger.error({ err, path: req.path }, 'non-operational error');
         }
-        res.status(err.statusCode).json({ error: err.message });
+        res.status(anyErr.statusCode).json({ error: anyErr.message });
         return;
     }
 

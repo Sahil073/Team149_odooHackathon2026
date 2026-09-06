@@ -1,6 +1,37 @@
+import { useState, useMemo } from 'react';
 import { ChevronDown, FileText, Filter } from 'lucide-react';
+import type { AuditLogItem } from '../../types';
 
-export function AuditTrailPage() {
+interface AuditTrailPageProps {
+  auditLogs?: AuditLogItem[];
+}
+
+export function AuditTrailPage({ auditLogs = [] }: AuditTrailPageProps) {
+  const [filterQuery, setFilterQuery] = useState('');
+  const [activityType, setActivityType] = useState('All activity');
+
+  const filteredLogs = useMemo(() => {
+    return auditLogs.filter((log) => {
+      const query = filterQuery.trim().toLowerCase();
+      const matchesText =
+        !query ||
+        log.user.toLowerCase().includes(query) ||
+        log.entity.toLowerCase().includes(query) ||
+        log.action.toLowerCase().includes(query) ||
+        log.reason.toLowerCase().includes(query);
+
+      if (!matchesText) return false;
+
+      if (activityType === 'User actions') {
+        return log.user.toLowerCase() !== 'system';
+      }
+      if (activityType === 'System actions') {
+        return log.user.toLowerCase() === 'system';
+      }
+      return true;
+    });
+  }, [auditLogs, filterQuery, activityType]);
+
   return (
     <div className="content-container operations-page">
       <div className="page-heading">
@@ -9,15 +40,24 @@ export function AuditTrailPage() {
           <h1>Audit trail<span className="heading-period">.</span></h1>
           <p>A complete record of user actions, entity changes, and system decisions.</p>
         </div>
-        <span className="page-context"><FileText size={15} /> 1,248 events</span>
+        <span className="page-context">
+          <FileText size={15} /> {filteredLogs.length} events
+        </span>
       </div>
       <div className="operations-toolbar">
         <label className="search-field">
           <Filter size={16} />
-          <input placeholder="Filter by user, entity, or action..." />
+          <input
+            placeholder="Filter by user, entity, or action..."
+            value={filterQuery}
+            onChange={(e) => setFilterQuery(e.target.value)}
+          />
         </label>
         <div className="filter-select">
-          <select defaultValue="All activity">
+          <select
+            value={activityType}
+            onChange={(e) => setActivityType(e.target.value)}
+          >
             <option>All activity</option>
             <option>User actions</option>
             <option>System actions</option>
@@ -38,20 +78,23 @@ export function AuditTrailPage() {
               </tr>
             </thead>
             <tbody>
-              {[
-                ['Pawan Kumar', 'Q-1042', 'Submitted for approval', 'Discount over Gold ceiling', 'Today · 10:06'],
-                ['M. Shah', 'Q-1037', 'Returned quotation', 'Margin justification needed', 'Yesterday · 14:18'],
-                ['System', 'SUB-174', 'Paused billing', 'Payment retry limit reached', 'Yesterday · 09:42'],
-                ['R. Iyer', 'INV-1042', 'Viewed reconciliation', 'Finance review', 'Aug 30 · 16:20'],
-              ].map((row) => (
-                <tr key={`${row[0]}-${row[1]}`}>
-                  <td><strong>{row[0]}</strong></td>
-                  <td>{row[1]}</td>
-                  <td>{row[2]}</td>
-                  <td>{row[3]}</td>
-                  <td className="table-muted">{row[4]}</td>
+              {filteredLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                    No audit records found.
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                filteredLogs.map((row) => (
+                  <tr key={row.id || `${row.user}-${row.entity}-${row.timestamp}`}>
+                    <td><strong>{row.user}</strong></td>
+                    <td>{row.entity}</td>
+                    <td>{row.action}</td>
+                    <td>{row.reason}</td>
+                    <td className="table-muted">{row.timestamp}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -59,3 +102,4 @@ export function AuditTrailPage() {
     </div>
   );
 }
+

@@ -1,4 +1,15 @@
 {
+  "name": "team149-odoo-hackathon",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix team-a/server run dev",
+    "build": "npm --prefix team-a/server run build",
+    "start": "npm --prefix team-a/server start",
+    "seed": "npm --prefix team-a/server run seed",
+    "db:push": "npm --prefix team-a/server run db:push",
+    "test:e2e": "npm --prefix team-a/server run test:e2e",
+    "test:audit": "npm --prefix team-a/server run test:audit"
+  },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",

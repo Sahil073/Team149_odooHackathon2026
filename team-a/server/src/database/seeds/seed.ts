@@ -1,4 +1,17 @@
-import { PrismaClient, Role, CustomerTier, ProductCategory, SubscriptionCycle } from '@prisma/client';
+import {
+    PrismaClient,
+    Role,
+    CustomerTier,
+    ProductCategory,
+    SubscriptionCycle,
+    QuotationStatus,
+    QuotationLineStatus,
+    SubscriptionStatus,
+    InvoiceType,
+    InvoiceStatus,
+    DealHealthFlagType,
+    DealHealthSeverity,
+} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -385,6 +398,262 @@ export async function seed(): Promise<void> {
     });
 
     console.log('  ✔ Seeded upsell rules for recommendations engine');
+
+    // ── 12. Quotations & Quotation Lines ──────────────────────────────────────
+    const q1042 = await prisma.quotation.upsert({
+        where: { id: 'Q-1042' },
+        update: {},
+        create: {
+            id: 'Q-1042',
+            customerId: acmeBronze.id,
+            salesRepId: salesRep.id,
+            status: QuotationStatus.DRAFT,
+            blendedRiskScore: 18,
+        },
+    });
+
+    await prisma.quotationLine.deleteMany({ where: { quotationId: q1042.id } });
+    await prisma.quotationLine.createMany({
+        data: [
+            {
+                quotationId: q1042.id,
+                productId: serverRack.id,
+                qty: 4,
+                unitPrice: 2500.00,
+                discountPct: 5,
+                lineLimitPct: 15,
+                status: QuotationLineStatus.OK,
+            },
+            {
+                quotationId: q1042.id,
+                productId: backupAppliance.id,
+                qty: 4,
+                unitPrice: 800.00,
+                discountPct: 9,
+                lineLimitPct: 15,
+                status: QuotationLineStatus.OK,
+            },
+        ],
+    });
+
+    const q1039 = await prisma.quotation.upsert({
+        where: { id: 'Q-1039' },
+        update: {},
+        create: {
+            id: 'Q-1039',
+            customerId: betaSilver.id,
+            salesRepId: salesRep.id,
+            status: QuotationStatus.PENDING_APPROVAL,
+            blendedRiskScore: 68,
+        },
+    });
+
+    await prisma.quotationLine.deleteMany({ where: { quotationId: q1039.id } });
+    await prisma.quotationLine.createMany({
+        data: [
+            {
+                quotationId: q1039.id,
+                productId: backupAppliance.id,
+                qty: 5,
+                unitPrice: 800.00,
+                discountPct: 20,
+                lineLimitPct: 10,
+                status: QuotationLineStatus.FLAGGED,
+            },
+        ],
+    });
+
+    const q1035 = await prisma.quotation.upsert({
+        where: { id: 'Q-1035' },
+        update: {},
+        create: {
+            id: 'Q-1035',
+            customerId: apexGold.id,
+            salesRepId: salesRep.id,
+            status: QuotationStatus.APPROVED,
+            blendedRiskScore: 12,
+        },
+    });
+
+    await prisma.quotationLine.deleteMany({ where: { quotationId: q1035.id } });
+    await prisma.quotationLine.createMany({
+        data: [
+            {
+                quotationId: q1035.id,
+                productId: serverRack.id,
+                qty: 3,
+                unitPrice: 2500.00,
+                discountPct: 0,
+                lineLimitPct: 15,
+                status: QuotationLineStatus.OK,
+            },
+        ],
+    });
+
+    const q1031 = await prisma.quotation.upsert({
+        where: { id: 'Q-1031' },
+        update: {},
+        create: {
+            id: 'Q-1031',
+            customerId: acmeBronze.id,
+            salesRepId: salesRep.id,
+            status: QuotationStatus.FULFILLED,
+            blendedRiskScore: 10,
+        },
+    });
+
+    await prisma.quotationLine.deleteMany({ where: { quotationId: q1031.id } });
+    await prisma.quotationLine.createMany({
+        data: [
+            {
+                quotationId: q1031.id,
+                productId: serverRack.id,
+                qty: 3,
+                unitPrice: 2500.00,
+                discountPct: 5,
+                lineLimitPct: 15,
+                status: QuotationLineStatus.OK,
+            },
+            {
+                quotationId: q1031.id,
+                productId: backupAppliance.id,
+                qty: 3,
+                unitPrice: 800.00,
+                discountPct: 0,
+                lineLimitPct: 15,
+                status: QuotationLineStatus.OK,
+            },
+        ],
+    });
+
+    console.log('  ✔ Seeded quotations (Q-1042 Draft, Q-1039 Pending Approval, Q-1035 Approved, Q-1031 Fulfilled)');
+
+    // ── 13. Fulfillment Splits ────────────────────────────────────────────────
+    await prisma.fulfillmentSplit.deleteMany({ where: { quotationId: q1031.id } });
+    await prisma.fulfillmentSplit.createMany({
+        data: [
+            {
+                quotationId: q1031.id,
+                warehouseId: mainWarehouse.id,
+                qtyFulfilled: 4,
+                shipmentCost: 42.00,
+                generatedBy: 'core-rule',
+            },
+            {
+                quotationId: q1031.id,
+                warehouseId: eastDepot.id,
+                qtyFulfilled: 2,
+                shipmentCost: 29.00,
+                generatedBy: 'core-rule',
+            },
+        ],
+    });
+
+    console.log('  ✔ Seeded fulfillment warehouse splits');
+
+    // ── 14. Subscriptions ─────────────────────────────────────────────────────
+    await prisma.subscription.upsert({
+        where: { quotationId: q1035.id },
+        update: {},
+        create: {
+            id: 'SUB-201',
+            quotationId: q1035.id,
+            planId: 'plan-monthly-std',
+            status: SubscriptionStatus.ACTIVE,
+            nextBillDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+    });
+
+    console.log('  ✔ Seeded active subscriptions');
+
+    // ── 15. Invoices ──────────────────────────────────────────────────────────
+    await prisma.invoice.upsert({
+        where: { id: 'INV-1042' },
+        update: {},
+        create: {
+            id: 'INV-1042',
+            quotationId: q1042.id,
+            type: InvoiceType.ONE_TIME,
+            status: InvoiceStatus.PENDING,
+            amount: 12400.00,
+            dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        },
+    });
+
+    await prisma.invoice.upsert({
+        where: { id: 'INV-1031' },
+        update: {},
+        create: {
+            id: 'INV-1031',
+            quotationId: q1031.id,
+            type: InvoiceType.ONE_TIME,
+            status: InvoiceStatus.PAID,
+            amount: 9750.00,
+            dueDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        },
+    });
+
+    console.log('  ✔ Seeded invoices (INV-1042 Unpaid, INV-1031 Paid)');
+
+    // ── 16. Deal Health Flags ────────────────────────────────────────────────
+    await prisma.dealHealthFlag.deleteMany();
+    await prisma.dealHealthFlag.createMany({
+        data: [
+            {
+                quotationId: q1039.id,
+                flagType: DealHealthFlagType.DISCOUNT_ANOMALY,
+                severity: DealHealthSeverity.HIGH,
+                detail: 'Line discount of 20% exceeds Silver tier allowance (10%)',
+                resolved: false,
+            },
+            {
+                quotationId: q1042.id,
+                flagType: DealHealthFlagType.STALLED,
+                severity: DealHealthSeverity.MEDIUM,
+                detail: 'Draft deal inactive for 5 days without customer engagement',
+                resolved: false,
+            },
+        ],
+    });
+
+    console.log('  ✔ Seeded deal health flags');
+
+    // ── 17. Audit Logs ───────────────────────────────────────────────────────
+    await prisma.auditLog.deleteMany();
+    await prisma.auditLog.createMany({
+        data: [
+            {
+                entityType: 'Quotation',
+                entityId: 'Q-1042',
+                userId: salesRep.id,
+                action: 'QUOTATION_CREATED',
+                reason: 'Draft quotation opened for Acme Corp',
+            },
+            {
+                entityType: 'Quotation',
+                entityId: 'Q-1039',
+                userId: salesRep.id,
+                action: 'APPROVAL_REQUIRED',
+                reason: 'Discount ceiling breached (20% > 10%)',
+            },
+            {
+                entityType: 'Quotation',
+                entityId: 'Q-1035',
+                userId: salesManager.id,
+                action: 'QUOTATION_APPROVED',
+                reason: 'Approved by Sales Manager within tier rules',
+            },
+            {
+                entityType: 'Fulfillment',
+                entityId: 'Q-1031',
+                userId: admin.id,
+                action: 'SPLIT_ACCEPTED',
+                reason: 'Warehouse split accepted (Main Warehouse + East Depot)',
+            },
+        ],
+    });
+
+    console.log('  ✔ Seeded audit log events');
     console.log('🎉 Seed completed successfully!');
 }
 
